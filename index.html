@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Web Install</title>
+    <script
+      src="https://www.w3.org/Tools/respec/respec-w3c"
+      class="remove"></script>
+    <script class="remove">
+      var respecConfig = {
+        specStatus: "CG-DRAFT",
+        group: "wicg",
+        github: "WICG/install-element",
+        shortName: "web-install",
+        editors: [
+          {
+            name: "Lia Hiscock",
+            company: "Microsoft",
+            companyURL: "https://www.microsoft.com/",
+            url: "https://github.com/LiaHiscock",
+          },
+          {
+            name: "Lu Huang",
+            company: "Microsoft",
+            companyURL: "https://www.microsoft.com/",
+            url: "https://github.com/LuHuangMSFT",
+          },
+        ],
+        xref: {
+          specs: [
+            "appmanifest",
+            "dom",
+            "fetch",
+            "html",
+            "infra",
+            "permissions",
+            "permissions-policy",
+            "secure-contexts",
+            "url",
+            "webidl",
+          ],
+          profile: "web-platform",
+        },
+        localBiblio: {
+          "CAPABILITY-ELEMENTS": {
+            title: "The HTML Geolocation Element",
+            href: "https://wicg.github.io/PEPC/geolocation-element.html",
+            authors: ["Daniel Vogelheim"],
+            publisher: "WICG",
+          },
+          "MANIFEST-INCUBATIONS": {
+            title: "Manifest Incubations",
+            href: "https://wicg.github.io/manifest-incubations/",
+            authors: ["Daniel Murphy"],
+            publisher: "WICG",
+          },
+          "LAUNCH-HANDLER": {
+            title: "Web App Launch Handler API",
+            href: "https://wicg.github.io/web-app-launch/",
+            publisher: "WICG",
+          },
+          "HTML-AAM": {
+            title: "HTML Accessibility API Mappings",
+            href: "https://www.w3.org/TR/html-aam-1.0/",
+            publisher: "W3C",
+          },
+        },
+      };
+    </script>
+    <style>
+      table {
+        width: 100%;
+      }
+
+      td,
+      th {
+        vertical-align: top;
+      }
+
+      .issue strong:first-child {
+        display: block;
+        margin-bottom: 0.25em;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="abstract">
+      <p>
+        This specification defines Web Install, a user-mediated capability that
+        lets a website ask the user agent to install a web application. It
+        defines two entry points: the {{Navigator/install()}} method and the
+        HTML <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element. Both entry points resolve a target
+        <a data-cite="appmanifest#dfn-manifest">application manifest</a>,
+        validate the target application, obtain
+        user consent, and invoke the same installation processing model.
+      </p>
+    </section>
+
+    <section id="sotd">
+      <p>
+        This document is an incubation draft. It intentionally records open
+        interoperability, privacy, and specification-ownership questions
+        inline. Those issues are part of the draft and do not indicate
+        implementer consensus.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>Introduction</h2>
+
+      <p>
+        User agents can install web applications, but websites do not have a
+        consistent way to offer that action. Existing installation affordances
+        vary by user agent and platform, and script-driven installation
+        mechanisms are generally limited to the application associated with
+        the current document.
+      </p>
+
+      <p>
+        Web Install provides a common operation with two complementary entry
+        points:
+      </p>
+
+      <ul>
+        <li>
+          {{Navigator/install()}} is an imperative, promise-based API for sites
+          that provide their own installation user interface.
+        </li>
+        <li>
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> is a
+          declarative, user-agent-rendered control that gives
+          the user agent a stronger signal of the user's intent.
+        </li>
+      </ul>
+
+      <p>
+        Either entry point can target the web application associated with the
+        current document, or a web application identified by the URL of its
+        manifest. A user agent always remains responsible for presenting
+        trustworthy confirmation UI and for deciding how installation maps to
+        the host platform.
+      </p>
+
+      <section>
+        <h3>Goals</h3>
+
+        <ul>
+          <li>
+            Let a site offer installation of its current web application.
+          </li>
+          <li>
+            Let catalogs, search experiences, and application suites offer
+            installation of a web application identified by its manifest URL.
+          </li>
+          <li>
+            Require a user-mediated decision for every installation attempt.
+          </li>
+          <li>
+            Reuse one target-resolution, validation, consent, installation, and
+            privacy model across both entry points.
+          </li>
+          <li>
+            Avoid exposing whether an arbitrary web application is already
+            installed.
+          </li>
+          <li>
+            Allow basic declarative use without script while retaining
+            progressive fallback content.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Non-goals</h3>
+
+        <ul>
+          <li>
+            Defining one platform-independent package format or one exact OS
+            meaning of "installed".
+          </li>
+          <li>
+            Silent, unattended, or policy-driven installation without a user
+            decision.
+          </li>
+          <li>
+            Installing native applications, browser extensions, or arbitrary
+            web content without an
+            <a data-cite="appmanifest#dfn-manifest">application manifest</a>.
+          </li>
+          <li>
+            Exposing a general installed-application enumeration API.
+          </li>
+          <li>
+            Requiring a service worker or offline download as part of
+            installation.
+          </li>
+        </ul>
+      </section>
+
+    </section>
+
+    <section id="examples" class="informative">
+      <h2>Examples</h2>
+
+      <p>
+        A site can offer installation of the web application associated with
+        its current document:
+      </p>
+
+      <pre class="example js"
+        title="Install the current web application with JavaScript">
+await navigator.install();
+      </pre>
+
+      <pre class="example html" title="Install the current web application with HTML">
+&lt;install&gt;
+  &lt;a href="/install-help"&gt;How to install this app&lt;/a&gt;
+&lt;/install&gt;
+      </pre>
+
+      <p>
+        A catalog can offer installation of an application identified by its
+        manifest URL:
+      </p>
+
+      <pre class="example js"
+        title="Install an application by manifest URL with JavaScript">
+await navigator.install({
+  manifest: "https://music.example/manifest.webmanifest",
+  manifestId: "https://music.example/app"
+});
+      </pre>
+
+      <pre class="example html"
+        title="Install an application by manifest URL with HTML">
+&lt;install
+  manifest="https://music.example/manifest.webmanifest"
+  manifestid="https://music.example/app"&gt;
+  &lt;a href="https://music.example/"&gt;Open Music Example&lt;/a&gt;
+&lt;/install&gt;
+      </pre>
+    </section>
+
+    <section id="dependencies">
+      <h2>Dependencies</h2>
+      <p>
+        This specification extends [[!HTML]] with {{Navigator/install()}} and
+        the <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element. It reuses manifest concepts and processing from
+        [[!appmanifest]], permission concepts from [[!permissions]], policy
+        control from [[!permissions-policy]], and request processing from
+        [[!FETCH]].
+      </p>
+
+      <p>
+        The <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element provisionally reuses
+        <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
+        activation blockers</a> and their rendering protections from
+        [[!CAPABILITY-ELEMENTS]].
+      </p>
+
+      <p class="issue">
+        <strong>Capability Elements ownership is unsettled.</strong>
+        The reusable activation-blocker algorithms currently live inside the
+        Geolocation Element draft, while Chromium's
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        implementation
+        uses an older <code>InPagePermissionMixin</code> that also exposes
+        permission-state and prompt event members that
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> does not
+        use. This draft references only the narrower
+        <code>ActivationBlockersMixin</code>. Before advancement, that mixin
+        should have a maintained, independently referenceable specification
+        home, or the required behavior must be defined here.
+      </p>
+
+      <p>
+        [[MANIFEST-INCUBATIONS]] is an informative dependency at present. If
+        this specification later reuses an incubating manifest member or
+        algorithm, that dependency must be made normative at the exact point of
+        use.
+      </p>
+    </section>
+
+    <section id="terminology">
+      <h2>Terminology</h2>
+      <p>
+        A user agent that does not support web application installation on a
+        particular platform or profile is not required to expose these entry
+        points. Platform support is implementation status, not a
+        desktop-specific conformance requirement. If an entry point is exposed,
+        its observable behavior MUST conform to this specification.
+      </p>
+
+      <p>
+        An <dfn data-export="">installing document</dfn> is the {{Document}}
+        whose {{Navigator}} or
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> element
+        initiated a Web Install request.
+      </p>
+
+      <p>
+        An <dfn data-export="">entry-point kind</dfn> is either
+        <dfn data-export="">navigator</dfn> or
+        <dfn data-export="">install element</dfn>.
+      </p>
+
+      <p>
+        A <dfn data-export="">target mode</dfn> is either
+        <dfn data-export="">current document</dfn> or
+        <dfn data-export="">explicit manifest</dfn>.
+      </p>
+
+      <p>
+        A <dfn data-export="">manifest ID assertion</dfn> is an optional URL
+        supplied by the caller for comparison with the processed
+        <a data-cite="appmanifest#dfn-id">manifest id</a>.
+      </p>
+    </section>
+
+    <section id="model">
+      <h2>Web Install model</h2>
+
+      <p>
+        A <dfn data-export="">web install request</dfn> is a struct with the
+        following [=struct/items=]:
+      </p>
+
+      <dl>
+        <dt><dfn data-dfn-for="web install request">document</dfn></dt>
+        <dd>The [=installing document=].</dd>
+
+        <dt><dfn data-dfn-for="web install request">entry point</dfn></dt>
+        <dd>The request's [=entry-point kind=].</dd>
+
+        <dt><dfn data-dfn-for="web install request">target mode</dfn></dt>
+        <dd>The request's [=target mode=].</dd>
+
+        <dt><dfn data-dfn-for="web install request">manifest URL</dfn></dt>
+        <dd>
+          Null for [=current document=] requests; otherwise the parsed manifest
+          URL.
+        </dd>
+
+        <dt><dfn data-dfn-for="web install request">manifest ID</dfn></dt>
+        <dd>The request's optional [=manifest ID assertion=].</dd>
+
+        <dt><dfn data-dfn-for="web install request">source element</dfn></dt>
+        <dd>
+          The initiating {{HTMLInstallElement}} for an [=install element=]
+          request; otherwise null.
+        </dd>
+
+        <dt><dfn data-dfn-for="web install request">state</dfn></dt>
+        <dd>
+          One of <code>created</code>, <code>resolving target</code>,
+          <code>awaiting permission</code>, <code>awaiting confirmation</code>,
+          <code>installing</code>, or <code>complete</code>.
+        </dd>
+      </dl>
+
+      <p>
+        A <dfn data-export="">web install target</dfn> is a struct with the
+        following [=struct/items=]:
+      </p>
+
+      <dl>
+        <dt><dfn data-dfn-for="web install target">manifest</dfn></dt>
+        <dd>
+          A
+          <a data-cite="appmanifest#dfn-processed-manifest">
+          processed manifest</a>.
+        </dd>
+
+        <dt><dfn data-dfn-for="web install target">manifest URL</dfn></dt>
+        <dd>The URL from which the manifest was obtained.</dd>
+
+        <dt><dfn data-dfn-for="web install target">identity</dfn></dt>
+        <dd>
+          The processed <a data-cite="appmanifest#dfn-id">manifest id</a>.
+        </dd>
+
+        <dt><dfn data-dfn-for="web install target">start URL</dfn></dt>
+        <dd>
+          The processed
+          <a data-cite="appmanifest#dfn-start_url">start URL</a>.
+        </dd>
+      </dl>
+
+      <p>
+        A <dfn data-export="">web install outcome</dfn> is one of:
+      </p>
+
+      <dl>
+        <dt><dfn data-export="">installation succeeded</dfn></dt>
+        <dd>
+          The user agent completed installation, or completed a
+          user-approved action for an already-installed application.
+        </dd>
+
+        <dt><dfn data-export="">invalid install data</dfn></dt>
+        <dd>
+          The supplied URL, manifest, identity assertion, or required
+          installation metadata was invalid or unavailable.
+        </dd>
+
+        <dt><dfn data-export="">user aborted installation</dfn></dt>
+        <dd>The user dismissed or declined user-agent installation UI.</dd>
+
+        <dt><dfn data-export="">installation not allowed</dfn></dt>
+        <dd>
+          Permission, policy, security context, or anti-abuse processing
+          disallowed the request.
+        </dd>
+
+        <dt><dfn data-export="">installation state invalid</dfn></dt>
+        <dd>
+          The installing document or its browsing context could not initiate or
+          continue the operation.
+        </dd>
+
+        <dt><dfn data-export="">installation not supported</dfn></dt>
+        <dd>
+          The user agent or host platform could not install the target in the
+          current profile or environment.
+        </dd>
+
+        <dt><dfn data-export="">installation operation aborted</dfn></dt>
+        <dd>
+          The request ended for another reason, including a concurrent
+          operation, navigation, destruction, or internal failure.
+        </dd>
+      </dl>
+
+      <p>
+        The internal outcome vocabulary is intentionally more detailed than
+        either public result surface. Each entry point maps it to a
+        privacy-limited public result.
+      </p>
+
+      <p>
+        Every [=top-level traversable=] has an
+        <dfn data-dfn-for="top-level traversable">
+        active web install request</dfn>, which is null or a
+        [=web install request=] and is initially null.
+      </p>
+
+      <p class="issue">
+        <strong>The public outcome taxonomy remains unresolved.</strong>
+        Current proposal text and Chromium expose success, invalid data, and a
+        broad aborted result. Developer feedback asks for user cancellation to
+        be distinguishable from internal failure, while privacy review prefers
+        exposing less cross-origin information. The algorithms below
+        provisionally retain the coarse current behavior and mark the
+        entry-point mappings explicitly.
+      </p>
+    </section>
+
+    <section id="shared-algorithm">
+      <h2>Shared Web Install processing</h2>
+
+      <aside class="note" title="How a request is processed">
+        <p>
+          Both {{Navigator/install()}} and
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> create a
+          [=web install request=] and use the same processing flow. The sections
+          following this one define each stage in the same order:
+        </p>
+
+        <ol>
+          <li>
+            Check that the calling page may initiate installation and that no
+            other install request is active in its tab or window.
+          </li>
+          <li>
+            Identify and validate the application to install. A
+            current-document request uses its processed manifest; an
+            explicit-manifest request fetches and processes the supplied
+            manifest URL.
+          </li>
+          <li>Obtain installation permission when the request requires it.</li>
+          <li>
+            Present user-controlled confirmation UI and, if accepted, install
+            the target or perform an approved action for an already-installed
+            application.
+          </li>
+          <li>
+            Finish the request. The initiating entry point then maps the
+            internal outcome to its public result.
+          </li>
+        </ol>
+
+        <p>
+          For a new application, installation is the last required operation.
+          The user agent may launch it afterward, but launching is not part of
+          the required shared flow.
+        </p>
+      </aside>
+
+      <p>
+        To <dfn>finish a web install request</dfn> given a
+        [=web install request=] <var>request</var> and
+        [=web install outcome=] <var>outcome</var>, run the following steps:
+      </p>
+
+      <ol class="algorithm">
+        <li>
+          Set <var>request</var>'s [=web install request/state=] to
+          <code>complete</code>.
+        </li>
+        <li>
+          Let <var>traversable</var> be <var>request</var>'s
+          [=web install request/document=]'s [=top-level traversable=], if it
+          has one; otherwise null.
+        </li>
+        <li>
+          If <var>traversable</var> is not null and its
+          [=top-level traversable/active web install request=] is
+          <var>request</var>, set it to null.
+        </li>
+        <li>Return <var>outcome</var>.</li>
+      </ol>
+
+      <p>
+        To <dfn>run a web install request</dfn> given a
+        [=web install request=] <var>request</var>, run the following steps:
+      </p>
+
+      <ol class="algorithm">
+        <li>
+          Let <var>document</var> be <var>request</var>'s
+          [=web install request/document=].
+        </li>
+        <li>
+          If <var>document</var> is not an [=eligible installing document=],
+          return the result of [=finish a web install request=] with
+          <var>request</var> and [=installation state invalid=].
+        </li>
+        <li>
+          Let <var>traversable</var> be <var>document</var>'s
+          [=top-level traversable=].
+        </li>
+        <li>
+          If <var>traversable</var>'s
+          [=top-level traversable/active web install request=] is not null,
+          return
+          the result of [=finish a web install request=] with
+          <var>request</var> and [=installation operation aborted=].
+        </li>
+        <li>
+          Set <var>traversable</var>'s
+          [=top-level traversable/active web install request=] to
+          <var>request</var>.
+        </li>
+        <li>
+          If <var>request</var>'s [=web install request/target mode=] is
+          [=current document=], let <var>targetResult</var> be the result of
+          [=resolve a current-document install target=] for
+          <var>request</var>. Otherwise, let <var>targetResult</var> be the
+          result of [=resolve an explicit manifest install target=] for
+          <var>request</var>.
+        </li>
+        <li>
+          If <var>targetResult</var> is a [=web install outcome=], return the
+          result of [=finish a web install request=] with
+          <var>request</var> and <var>targetResult</var>.
+        </li>
+        <li>Let <var>target</var> be <var>targetResult</var>.</li>
+        <li>
+          If <var>document</var> is no longer an
+          [=eligible installing document=]:
+          <ol>
+            <li>
+              If <var>traversable</var>'s
+              [=top-level traversable/active web install request=] is
+              <var>request</var>, set it to null.
+            </li>
+            <li>
+              Return the result of [=finish a web install request=] with
+              <var>request</var> and [=installation state invalid=].
+            </li>
+          </ol>
+        </li>
+        <li>
+          Let <var>permissionGranted</var> be the result of
+          [=obtain web install permission=] for <var>request</var>.
+        </li>
+        <li>
+          If <var>permissionGranted</var> is false, return the result of
+          [=finish a web install request=] with <var>request</var> and
+          [=installation not allowed=].
+        </li>
+        <li>
+          Let <var>outcome</var> be the result of
+          [=perform web installation=] with <var>request</var> and
+          <var>target</var>.
+        </li>
+        <li>
+          Return the result of [=finish a web install request=] with
+          <var>request</var> and <var>outcome</var>.
+        </li>
+      </ol>
+
+      <p class="issue">
+        <strong>The network request currently precedes permission.</strong>
+        The algorithm matches Chromium by fetching and validating an explicit
+        manifest before checking installation permission and profile support.
+        This helps coarsen private-profile failures behind data errors, but it
+        lets a target origin observe a request before the installing user grants
+        permission. The final ordering requires privacy and implementer review.
+      </p>
+
+      <p class="issue">
+        <strong>Concurrency scope is provisional.</strong>
+        Chromium has document-service and WebContents-level guards, while the
+        capability-element implementation also caps registered install
+        elements. This draft defines one active operation per top-level
+        traversable because that is the visible dialog scope. Per-profile,
+        per-origin, cooldown, and quota controls remain user-agent anti-abuse
+        policy.
+      </p>
+
+      <p>
+        If the [=installing document=] navigates, is destroyed, ceases to be
+        fully active, or ceases to be the active document of its top-level
+        traversable before processing completes, the user agent MUST cancel
+        associated user interface and complete the request with
+        [=installation state invalid=].
+      </p>
+
+      <p class="issue">
+        <strong>Navigation and BFCache lifetime need exact HTML integration.</strong>
+        Chromium cancels on every cross-document navigation, including
+        same-origin navigation and BFCache transitions. This draft preserves
+        the active-document invariant but does not yet define whether a BFCache
+        restoration can resume an operation.
+      </p>
+    </section>
+
+    <section id="preconditions">
+      <h2>Common request preconditions</h2>
+
+      <p>
+        To determine whether a {{Document}} <var>document</var> is an
+        <dfn>eligible installing document</dfn>, run the following steps:
+      </p>
+
+      <ol class="algorithm">
+        <li>
+          If <var>document</var> is not [=Document/fully active=], return false.
+        </li>
+        <li>
+          If <var>document</var> is not the
+          <a data-cite="html/document-sequences.html#active-document">
+          active document</a> of a
+          [=top-level traversable=], return false.
+        </li>
+        <li>
+          If <var>document</var> is a
+          <a href="https://wicg.github.io/fenced-frame/#fenced-frame">
+          fenced frame</a> document, return false.
+        </li>
+        <li>
+          If <var>document</var>'s
+          <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+          active sandboxing flag set</a> is not empty, return false.
+        </li>
+        <li>
+          If the <code>web-app-installation</code> [=policy-controlled feature=]
+          is disabled in <var>document</var>, return false.
+        </li>
+        <li>Return true.</li>
+      </ol>
+
+      <p class="issue">
+        <strong>Frame and sandbox scope needs multi-implementer review.</strong>
+        Chromium currently requires the primary top-level document and rejects
+        every sandboxed context. Proposal text leaves same-origin frames and a
+        future sandbox opt-in open. This draft preserves Chromium's restrictive
+        behavior until a safe delegation model is designed.
+      </p>
+
+      <p class="issue">
+        <strong>Secure-context exposure is inconsistent.</strong>
+        Chromium's IDL lacks <code>[SecureContext]</code>, but browser bindings
+        and manifest URL checks effectively restrict use to trustworthy HTTP(S)
+        contexts. This draft checks trustworthy contexts in processing rather
+        than changing interface exposure. The final API should decide whether
+        secure-context gating belongs in WebIDL.
+      </p>
+    </section>
+
+    <section id="target-resolution">
+      <h2>Resolving an installation target</h2>
+
+      <section id="current-document-target">
+        <h3>Current-document target</h3>
+
+        <p>
+          To <dfn>resolve a current-document install target</dfn> for a
+          [=web install request=] <var>request</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Set <var>request</var>'s [=web install request/state=] to
+            <code>resolving target</code>.
+          </li>
+          <li>
+            Let <var>document</var> be <var>request</var>'s
+            [=web install request/document=].
+          </li>
+          <li>
+            Let <var>manifest</var> be <var>document</var>'s
+            <a data-cite="appmanifest#dfn-processed-manifest">
+            processed manifest</a>.
+          </li>
+          <li>
+            If <var>manifest</var> is null, return
+            [=invalid install data=].
+          </li>
+          <li>
+            Let <var>manifestURL</var> be <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-manifest-url">manifest URL</a>.
+          </li>
+          <li>
+            Let <var>identity</var> be <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-id">manifest id</a>.
+          </li>
+          <li>
+            If the manifest did not explicitly contain an
+            <code>id</code> member, return [=invalid install data=].
+          </li>
+          <li>
+            If <var>identity</var> is not [=same origin=] with
+            <var>document</var>'s [=Document/URL=], return
+            [=invalid install data=].
+          </li>
+          <li>
+            Let <var>target</var> be a new [=web install target=] whose
+            [=web install target/manifest=] is <var>manifest</var>,
+            [=web install target/manifest URL=] is <var>manifestURL</var>,
+            [=web install target/identity=] is <var>identity</var>, and
+            [=web install target/start URL=] is <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-start_url">start URL</a>.
+          </li>
+          <li>
+            Return the result of [=validate a web install target=] with
+            <var>request</var> and <var>target</var>.
+          </li>
+        </ol>
+
+        <p class="issue">
+          <strong>Manifest readiness is underspecified.</strong>
+          The no-argument API can be activated before the document's linked
+          manifest finishes loading. Chromium reads the current document's
+          processed manifest without waiting for a service worker. The final
+          algorithm must define whether it waits for an in-flight manifest,
+          fails immediately, or reuses the installation-prompt discovery
+          processing currently incubated in [[MANIFEST-INCUBATIONS]].
+        </p>
+      </section>
+
+      <section id="explicit-manifest-target">
+        <h3>Explicit manifest target</h3>
+
+        <p>
+          To <dfn>resolve an explicit manifest install target</dfn> for a
+          [=web install request=] <var>request</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Set <var>request</var>'s [=web install request/state=] to
+            <code>resolving target</code>.
+          </li>
+          <li>
+            Let <var>manifestURL</var> be <var>request</var>'s
+            [=web install request/manifest URL=].
+          </li>
+          <li>
+            If <var>manifestURL</var> is not an HTTP(S) URL whose
+            [=url/origin=] is not
+            <a data-cite="secure-contexts#is-origin-trustworthy">
+            potentially trustworthy</a>, return
+            [=invalid install data=].
+          </li>
+          <li>
+            Let <var>response</var> be the result of
+            [=fetch an install manifest=] from <var>manifestURL</var>.
+          </li>
+          <li>
+            If <var>response</var> is failure, return
+            [=invalid install data=].
+          </li>
+          <li>
+            Let <var>manifest</var> be the result of
+            [=process an install manifest response=] with
+            <var>response</var> and <var>manifestURL</var>.
+          </li>
+          <li>
+            If <var>manifest</var> is failure, return
+            [=invalid install data=].
+          </li>
+          <li>
+            Let <var>identity</var> be <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-id">manifest id</a>.
+          </li>
+          <li>
+            If <var>request</var>'s [=web install request/manifest ID=] is not
+            null, and it is not equal to <var>identity</var>, return
+            [=invalid install data=].
+          </li>
+          <li>
+            If <var>request</var>'s [=web install request/manifest ID=] is null,
+            and the fetched manifest did not explicitly contain an
+            <code>id</code> member, return [=invalid install data=].
+          </li>
+          <li>
+            Let <var>target</var> be a new [=web install target=] whose
+            [=web install target/manifest=] is <var>manifest</var>,
+            [=web install target/manifest URL=] is <var>manifestURL</var>,
+            [=web install target/identity=] is <var>identity</var>, and
+            [=web install target/start URL=] is <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-start_url">start URL</a>.
+          </li>
+          <li>
+            Return the result of [=validate a web install target=] with
+            <var>request</var> and <var>target</var>.
+          </li>
+        </ol>
+
+        <p class="issue">
+          <strong>Relative manifest ID assertions are unresolved.</strong>
+          Proposal examples use absolute URLs and Chromium currently rejects
+          relative assertions. HTML URL-valued attributes normally resolve
+          relative values. This draft provisionally requires an absolute
+          manifest ID assertion for both entry points so their comparison
+          semantics remain aligned.
+        </p>
+      </section>
+    </section>
+
+    <section id="manifest-fetch">
+      <h2>Fetching and processing a manifest</h2>
+
+      <section>
+        <h3>Fetching an install manifest</h3>
+
+        <p>
+          To <dfn>fetch an install manifest</dfn> from a URL
+          <var>manifestURL</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>request</var> be a new {{Request}} whose
+            [=request/URL=] is <var>manifestURL</var>,
+            [=request/method=] is <code>GET</code>,
+            [=request/destination=] is <code>manifest</code>,
+            [=request/credentials mode=] is <code>omit</code>, and
+            [=request/redirect mode=] is <code>error</code>.
+          </li>
+          <li>
+            Set <var>request</var>'s [=request/referrer=] to
+            <code>no-referrer</code>.
+          </li>
+          <li>
+            Set <var>request</var>'s [=request/mode=] to
+            <code>cors</code>.
+          </li>
+          <li>
+            Let <var>response</var> be the result of [=fetching=]
+            <var>request</var>.
+          </li>
+          <li>
+            If <var>response</var> is a [=network error=], return failure.
+          </li>
+          <li>
+            If <var>response</var>'s [=response/status=] is not an
+            [=ok status=], return failure.
+          </li>
+          <li>Return <var>response</var>.</li>
+        </ol>
+
+        <p class="issue">
+          <strong>The Fetch mode is a blocking design question.</strong>
+          Chromium performs a browser-process, credentialless fetch without
+          explicitly setting a Fetch mode. A <code>cors</code> request requires
+          the target server to opt in, which may conflict with the proposal's
+          goal that any catalog can offer an application. A
+          <code>no-cors</code> request normally yields an opaque response that
+          cannot be parsed by web content. The provisional
+          <code>cors</code> step above must be replaced by an agreed Fetch
+          integration before this algorithm is implementable across engines.
+        </p>
+
+        <p class="issue">
+          <strong>Redirect and MIME behavior need agreement.</strong>
+          Chromium rejects every redirect and parses successful bodies without
+          checking MIME type. The explainers do not fully specify either
+          behavior. This draft provisionally rejects redirects and does not add
+          a MIME requirement, matching current implementation.
+        </p>
+
+        <p>
+          A user agent MAY impose implementation-defined response-size,
+          retry, cache, and resource limits. Such limits MUST NOT expose
+          installed state or private-browsing state.
+        </p>
+
+        <p>
+          If the user agent fetches icons or other target resources before the
+          user accepts installation, those requests MUST omit credentials and
+          caller-specific authentication state. Their Fetch mode, referrer, cache
+          behavior, and cross-origin requirements need the same explicit review as
+          the manifest request.
+        </p>
+      </section>
+
+      <section>
+        <h3>Processing an install manifest response</h3>
+
+        <p>
+          To <dfn>process an install manifest response</dfn> given a
+          {{Response}} <var>response</var> and URL
+          <var>manifestURL</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>bodyBytes</var> be the result of
+            <a data-cite="fetch#body-fully-read">fully reading</a>
+            <var>response</var>'s [=response/body=].
+          </li>
+          <li>
+            If fully reading the body failed, return failure.
+          </li>
+          <li>
+            Let <var>manifest</var> be the result of running
+            <a data-cite="appmanifest#dfn-processing-a-manifest">
+            process a manifest</a> with
+            <var>bodyBytes</var>, <var>manifestURL</var> as both the
+            <var>manifest URL</var> and <var>document URL</var>, and null as
+            the <var>client</var>.
+          </li>
+          <li>
+            If processing the manifest failed, return failure.
+          </li>
+          <li>Return <var>manifest</var>.</li>
+        </ol>
+
+        <p class="issue">
+          <strong>This is an explicit Web App Manifest integration.</strong>
+          Chromium passes the manifest URL as both the document URL and manifest
+          URL so relative members resolve against the manifest. Web App
+          Manifest permits processing without a client but recommends evidence
+          that a document was historically associated with the manifest. Direct
+          installation deliberately has no loaded target document. WebApps WG
+          should decide whether this call is a supported parameterization or a
+          monkeypatch requiring a new processing entry point.
+        </p>
+
+        <p class="issue">
+          <strong>Source-member presence must survive processing.</strong>
+          Both target modes need to distinguish an explicitly declared
+          <code>id</code> or <code>start_url</code> from Web App Manifest's
+          computed defaults. The current processed-manifest model does not
+          clearly export those presence bits. This specification needs either
+          an enriched processing result or an explicit pre-processing step that
+          records them.
+        </p>
+      </section>
+
+      <section>
+        <h3>Validating a web install target</h3>
+
+        <p>
+          To <dfn>validate a web install target</dfn> given a
+          [=web install request=] <var>request</var> and
+          [=web install target=] <var>target</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>manifest</var> be <var>target</var>'s
+            [=web install target/manifest=].
+          </li>
+          <li>
+            If the source manifest did not explicitly contain a valid
+            <code>start_url</code> member, return [=invalid install data=].
+          </li>
+          <li>
+            If neither <a data-cite="appmanifest#dfn-name">name</a> nor
+            <a data-cite="appmanifest#dfn-short_name">short name</a> is a
+            non-empty string, return [=invalid install data=].
+          </li>
+          <li>
+            If <var>manifest</var>'s
+            <a data-cite="appmanifest#dfn-icons">icons</a> list does not contain
+            at least one valid image resource whose
+            <a data-cite="appmanifest#dfn-purpose">purpose</a> contains
+            <code>any</code>, return [=invalid install data=].
+          </li>
+          <li>
+            If <var>request</var>'s [=web install request/target mode=] is
+            [=explicit manifest=], and <var>target</var>'s
+            [=web install target/start URL=] is not [=same origin=] with
+            <var>target</var>'s [=web install target/manifest URL=], return
+            [=invalid install data=].
+          </li>
+          <li>Return <var>target</var>.</li>
+        </ol>
+
+        <p class="issue">
+          <strong>Installation eligibility differs between current paths.</strong>
+          Chromium's current-document path requires a suitable
+          <code>any</code> icon and ignores display mode, while its explicit
+          manifest path initially checks only for a non-empty icon list before
+          downloading icons. The common requirements above are provisional and
+          need alignment with Web App Manifest's deliberately broad definition
+          of an installable web application.
+        </p>
+
+        <p class="issue">
+          <strong>Missing-icon failure classification differs.</strong>
+          Chromium can classify an explicit target with no icons as a broad
+          abort while other malformed manifest data becomes
+          <code>DataError</code>. The provisional validation steps treat missing
+          required icon data as [=invalid install data=] for both target modes.
+        </p>
+
+        <p class="issue">
+          <strong>Related applications and overlapping scopes are unresolved.</strong>
+          The draft does not hand installation to
+          <code>related_applications</code>, nor does it reject a target because
+          another installed app controls overlapping scope. Both behaviors
+          affect application identity and should be decided with Web App
+          Manifest rather than inherited from one product's installability
+          heuristics.
+        </p>
+
+        <p>
+          This specification does not require a service worker, offline
+          capability, or a particular display mode. A user agent MAY use those
+          signals when deciding how to present or integrate an application, but
+          it MUST NOT report their absence as [=invalid install data=] unless a
+          future version of this specification makes them requirements.
+        </p>
+      </section>
+    </section>
+
+    <section id="permission">
+      <h2>Permission and user consent</h2>
+
+      <section>
+        <h3>The <code>web-app-installation</code> powerful feature</h3>
+
+        <p>
+          This specification defines a [=powerful feature=] identified by the
+          permission name
+          <dfn id="web-app-installation-permission" data-export="">
+          <code>web-app-installation</code> permission</dfn>.
+          Its [=permission state=] is associated with the [=installing
+          document=]'s [=origin=].
+        </p>
+
+        <p>
+          This specification also defines a [=policy-controlled feature=] named
+          <dfn id="web-app-installation-policy-controlled-feature"
+            data-export=""><code>web-app-installation</code>
+          policy-controlled feature</dfn> with a default allowlist of
+          <code>self</code>.
+        </p>
+
+        <p class="issue">
+          <strong>Permission scope and applicability conflict across evidence.</strong>
+          Some proposal text describes the permission as cross-origin-only,
+          other proposal text requires it for every explicitly targeted
+          manifest, and Chromium currently checks it for every
+          {{Navigator/install()}} explicit-manifest request. The algorithm below
+          provisionally follows Chromium: the permission is required for the
+          imperative explicit-manifest form, regardless of whether caller and
+          target are same-origin.
+        </p>
+
+        <p class="issue">
+          <strong>The default permission state differs between products.</strong>
+          Chromium can prompt for this permission, while current Edge product
+          policy can treat the initial state as allowed. The web specification
+          should define the permission's semantics and leave enterprise or product
+          grants to user-agent policy without changing the public result taxonomy.
+        </p>
+      </section>
+
+      <section>
+        <h3>Obtaining install permission</h3>
+
+        <p>
+          To <dfn>obtain web install permission</dfn> for a
+          [=web install request=] <var>request</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            If <var>request</var>'s [=web install request/entry point=] is
+            [=install element=], return true.
+          </li>
+          <li>
+            If <var>request</var>'s [=web install request/target mode=] is
+            [=current document=], return true.
+          </li>
+          <li>
+            Set <var>request</var>'s [=web install request/state=] to
+            <code>awaiting permission</code>.
+          </li>
+          <li>
+            Let <var>descriptor</var> be a new {{PermissionDescriptor}} whose
+            {{PermissionDescriptor/name}} is
+            <code>web-app-installation</code>.
+          </li>
+          <li>
+            Let <var>state</var> be the result of [=request permission to use=]
+            the powerful feature described by <var>descriptor</var>.
+          </li>
+          <li>
+            If <var>state</var> is not {{PermissionState/"granted"}}, return
+            false.
+          </li>
+          <li>Return true.</li>
+        </ol>
+
+        <p class="issue">
+          <strong>Trusted element activation currently bypasses stored denial.</strong>
+          Chromium treats a validated click on
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> as
+          sufficient intent
+          and skips the persistent permission check, even if the stored state is
+          denied. This draft provisionally matches that behavior. The final
+          design must decide whether the element bypasses only a prompt, or also
+          an explicit prior denial.
+        </p>
+      </section>
+
+      <section>
+        <h3>Installation confirmation</h3>
+
+        <p>
+          To <dfn>confirm web installation</dfn> given a
+          [=web install request=] <var>request</var> and
+          [=web install target=] <var>target</var>, the user agent MUST present
+          user-controlled UI that:
+        </p>
+
+        <ul>
+          <li>identifies the [=installing document=]'s origin;</li>
+          <li>identifies the target application's origin;</li>
+          <li>
+            presents sufficient trustworthy target metadata, such as name,
+            icon, and start URL, to distinguish the application; and
+          </li>
+          <li>allows the user to accept or decline the operation.</li>
+        </ul>
+
+        <p>
+          The exact layout, wording, platform integration, and number of UI
+          surfaces are user-agent-defined.
+        </p>
+
+        <p>
+          Return true if the user accepts the operation. Otherwise, return
+          false.
+        </p>
+      </section>
+    </section>
+
+    <section id="perform-install">
+      <h2>Performing installation</h2>
+
+      <p>
+        To <dfn>perform web installation</dfn> given a
+        [=web install request=] <var>request</var> and
+        [=web install target=] <var>target</var>, run the following steps:
+      </p>
+
+      <ol class="algorithm">
+        <li>
+          Set <var>request</var>'s [=web install request/state=] to
+          <code>awaiting confirmation</code>.
+        </li>
+        <li>
+          If the user agent determines that an
+          <a data-cite="appmanifest#dfn-installed-web-application">
+          installed web application</a>
+          with <var>target</var>'s [=web install target/identity=] already
+          exists:
+          <ol>
+            <li>
+              Present user-controlled UI that offers a reasonable action for
+              the existing application, such as launching it.
+            </li>
+            <li>
+              If the user declines or dismisses that UI, return
+              [=user aborted installation=].
+            </li>
+            <li>
+              Perform the accepted action and return
+              [=installation succeeded=].
+            </li>
+          </ol>
+        </li>
+        <li>
+          Let <var>accepted</var> be the result of
+          [=confirm web installation=] with <var>request</var> and
+          <var>target</var>.
+        </li>
+        <li>
+          If <var>accepted</var> is false, return
+          [=user aborted installation=].
+        </li>
+        <li>
+          Set <var>request</var>'s [=web install request/state=] to
+          <code>installing</code>.
+        </li>
+        <li>
+          Ask the user agent to install an
+          <a data-cite="appmanifest#dfn-installed-web-application">
+          installed web application</a> whose
+          <a data-cite="appmanifest#dfn-manifest">application manifest</a> is
+          <var>target</var>'s
+          [=web install target/manifest=].
+        </li>
+        <li>
+          If the user agent cannot complete installation, return
+          [=installation operation aborted=].
+        </li>
+        <li>Return [=installation succeeded=].</li>
+      </ol>
+
+      <p>
+        A user agent MAY launch the application after installation and MAY
+        integrate it with host-platform surfaces. Such behavior does not change
+        the target application's origin, permissions, or storage partition.
+      </p>
+
+      <p class="issue">
+        <strong>The success point is not settled.</strong>
+        Chromium reports success after installation, or after the user accepts
+        a launch action for an already-installed app. A race can cause success
+        even if the installed app disappears before a queued launch. The final
+        specification must decide whether success means completed installation,
+        accepted user intent, or a broader "reasonable action" by the user
+        agent.
+      </p>
+
+      <p class="issue">
+        <strong>Display mode and OS integration are user-agent policy.</strong>
+        Chromium currently forces a standalone display mode, requests OS
+        integration, and launches new installations. Those choices are not
+        stated as interoperable requirements in the proposal and are not
+        required by this draft.
+      </p>
+    </section>
+
+    <section id="navigator-api">
+      <h2>The <code>navigator.install()</code> API</h2>
+
+      <pre class="idl">
+partial interface Navigator {
+  Promise&lt;WebInstallResult&gt; install();
+  Promise&lt;WebInstallResult&gt; install(InstallParams options);
+};
+
+dictionary InstallParams {
+  required USVString manifest;
+  USVString? manifestId;
+};
+
+dictionary WebInstallResult {};
+      </pre>
+
+      <p class="issue">
+        <strong>Consider <code>[SecureContext]</code>.</strong>
+        Chromium does not annotate these interfaces with
+        <code>[SecureContext]</code>, although practical use is restricted to
+        trustworthy contexts and targets. The final WebIDL exposure should be
+        decided explicitly.
+      </p>
+
+      <p class="issue">
+        <strong>Calling-context exception names are not aligned.</strong>
+        Chromium throws <code>SecurityError</code> for sandbox or Permissions
+        Policy rejection, <code>NotFoundError</code> for some missing-document
+        states, and <code>InvalidStateError</code> for other invalid contexts.
+        The provisional method steps below use <code>InvalidStateError</code>
+        for every ineligible installing document. The final taxonomy should
+        distinguish author-actionable security failures without exposing
+        unnecessary lifecycle or profile information.
+      </p>
+
+      <p class="issue">
+        <strong>The result dictionary is intentionally empty.</strong>
+        Earlier IDL contains a <code>manifestId</code> member, while the current
+        manifest-target implementation deliberately withholds it. This draft
+        defines an empty dictionary for future compatibility. A
+        <code>Promise&lt;undefined&gt;</code> return type remains a simpler
+        alternative.
+      </p>
+
+      <section data-dfn-for="Navigator">
+        <h3><dfn><code>install()</code></dfn> method</h3>
+
+        <p>
+          The {{Navigator/install()}} method steps are:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>document</var> be [=this=]'s [=relevant global object=]'s
+            <a data-cite="html/window-object.html#concept-document-window">
+            associated Document</a>.
+          </li>
+          <li>
+            If <var>document</var> is not an [=eligible installing document=],
+            throw an "{{InvalidStateError}}" {{DOMException}}.
+          </li>
+          <li>
+            If <var>document</var> does not have [=transient activation=],
+            throw a "{{NotAllowedError}}" {{DOMException}}.
+          </li>
+          <li>[=Consume user activation=] of <var>document</var>.</li>
+          <li>
+            Let <var>request</var> be a new [=web install request=] whose
+            [=web install request/document=] is <var>document</var>,
+            [=web install request/entry point=] is [=navigator=],
+            [=web install request/target mode=] is [=current document=],
+            [=web install request/manifest URL=] and
+            [=web install request/manifest ID=] are null,
+            [=web install request/source element=] is null, and
+            [=web install request/state=] is <code>created</code>.
+          </li>
+          <li>
+            Return the result of [=run a navigator install request=] with
+            <var>request</var>.
+          </li>
+        </ol>
+
+        <p>
+          The {{Navigator/install()}} method steps given
+          {{InstallParams}} <var>options</var> are:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>document</var> be [=this=]'s [=relevant global object=]'s
+            <a data-cite="html/window-object.html#concept-document-window">
+            associated Document</a>.
+          </li>
+          <li>
+            If <var>document</var> is not an [=eligible installing document=],
+            throw an "{{InvalidStateError}}" {{DOMException}}.
+          </li>
+          <li>
+            If <var>document</var> does not have [=transient activation=],
+            throw a "{{NotAllowedError}}" {{DOMException}}.
+          </li>
+          <li>[=Consume user activation=] of <var>document</var>.</li>
+          <li>
+            Let <var>manifestURL</var> be the result of the
+            [=URL parser=] on
+            <var>options</var>.{{InstallParams/manifest}} with
+            <var>document</var>'s [=Document/URL=] as base URL.
+          </li>
+          <li>
+            If <var>manifestURL</var> is failure, throw a {{TypeError}}.
+          </li>
+          <li>Let <var>manifestID</var> be null.</li>
+          <li>
+            If <var>options</var>.{{InstallParams/manifestId}} is not null:
+            <ol>
+              <li>
+                Set <var>manifestID</var> to the result of the
+                [=URL parser=] on
+                <var>options</var>.{{InstallParams/manifestId}} with no base
+                URL.
+              </li>
+              <li>
+                If <var>manifestID</var> is failure, throw a {{TypeError}}.
+              </li>
+            </ol>
+          </li>
+          <li>
+            Let <var>request</var> be a new [=web install request=] whose
+            [=web install request/document=] is <var>document</var>,
+            [=web install request/entry point=] is [=navigator=],
+            [=web install request/target mode=] is [=explicit manifest=],
+            [=web install request/manifest URL=] is <var>manifestURL</var>,
+            [=web install request/manifest ID=] is <var>manifestID</var>,
+            [=web install request/source element=] is null, and
+            [=web install request/state=] is <code>created</code>.
+          </li>
+          <li>
+            Return the result of [=run a navigator install request=] with
+            <var>request</var>.
+          </li>
+        </ol>
+
+        <p class="issue">
+          <strong>Activation is consumed before argument validation.</strong>
+          The ordering above matches Chromium. An invalid manifest URL therefore
+          consumes activation even though no request starts. Moving URL parsing
+          before consumption would be friendlier to authors but would differ
+          from current implementation.
+        </p>
+      </section>
+
+      <section data-dfn-for="InstallParams">
+        <h3><dfn><code>manifest</code></dfn> member</h3>
+        <p>
+          The URL of the
+          <a data-cite="appmanifest#dfn-manifest">application manifest</a>
+          that identifies the target web application. Relative values are
+          resolved against the
+          [=installing document=]'s URL.
+        </p>
+
+        <h3><dfn><code>manifestId</code></dfn> member</h3>
+        <p>
+          An optional absolute [=manifest ID assertion=]. Null and omission have
+          the same meaning.
+        </p>
+      </section>
+
+      <section>
+        <h3>Promise processing</h3>
+
+        <p>
+          To <dfn>run a navigator install request</dfn> given a
+          [=web install request=] <var>request</var>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>Let <var>promise</var> be a new promise.</li>
+          <li>
+            Run the following steps [=in parallel=]:
+            <ol>
+              <li>
+                Let <var>outcome</var> be the result of
+                [=run a web install request=] with <var>request</var>.
+              </li>
+              <li>
+                [=Queue a global task=] on the [=user interaction task source=]
+                given <var>request</var>'s
+                [=web install request/document=]'s [=relevant global object=]
+                to run the following steps:
+                <ol>
+                  <li>
+                    If <var>outcome</var> is
+                    [=installation succeeded=], [=resolve=]
+                    <var>promise</var> with a new {{WebInstallResult}} and
+                    abort these substeps.
+                  </li>
+                  <li>
+                    If <var>outcome</var> is [=invalid install data=],
+                    [=reject=] <var>promise</var> with a
+                    "{{DataError}}" {{DOMException}} and abort these substeps.
+                  </li>
+                  <li>
+                    If <var>outcome</var> is
+                    [=installation state invalid=], [=reject=]
+                    <var>promise</var> with an "{{InvalidStateError}}"
+                    {{DOMException}} and abort these substeps.
+                  </li>
+                  <li>
+                    If <var>outcome</var> is
+                    [=installation not allowed=], [=reject=]
+                    <var>promise</var> with a "{{NotAllowedError}}"
+                    {{DOMException}} and abort these substeps.
+                  </li>
+                  <li>
+                    [=Reject=] <var>promise</var> with an
+                    "{{AbortError}}" {{DOMException}}.
+                  </li>
+                </ol>
+              </li>
+            </ol>
+          </li>
+          <li>Return <var>promise</var>.</li>
+        </ol>
+
+        <p class="issue">
+          <strong>Chromium coarsens more outcomes to AbortError.</strong>
+          Permission denial, unsupported profiles, navigation, concurrency, and
+          internal failure currently map to <code>AbortError</code>. The more
+          specific mappings above reflect common DOMException conventions but
+          expose additional information. Resolve this together with the public
+          outcome taxonomy issue; until then, implementations should not assume
+          these distinctions are stable.
+        </p>
+      </section>
+    </section>
+
+    <section id="install-element">
+      <h2>
+        The
+        <code>&lt;<dfn data-dfn-type="element"
+          data-export="">install</dfn>&gt;</code> element
+      </h2>
+
+      <p>
+        The HTML
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> element
+        represents a user-agent-rendered control that lets the user initiate a
+        Web Install request.
+      </p>
+
+      <dl class="element">
+        <dt>Categories:</dt>
+        <dd>[=Flow content=].</dd>
+        <dd>[=Phrasing content=].</dd>
+        <dd>[=Interactive content=].</dd>
+        <dd>[=Palpable content=].</dd>
+        <dt>Contexts in which this element can be used:</dt>
+        <dd>Where [=phrasing content=] is expected.</dd>
+        <dt>Content model:</dt>
+        <dd>[=Phrasing content=].</dd>
+        <dt>Content attributes:</dt>
+        <dd>
+          <a data-cite="html/dom.html#global-attributes">Global attributes</a>.
+        </dd>
+        <dd>
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifest</a></code>.
+        </dd>
+        <dd>
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code>.
+        </dd>
+        <dd><code>oninstallresult</code>.</dd>
+        <dd>
+          Attributes defined by
+          <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
+          <code>ActivationBlockersMixin</code></a>.
+        </dd>
+        <dt>Accessibility considerations:</dt>
+        <dd>For authors: none.</dd>
+        <dd>For implementers: see [[HTML-AAM]] and
+          <a href="#accessibility">Accessibility considerations</a>.</dd>
+        <dt>DOM interface:</dt>
+        <dd>{{HTMLInstallElement}}.</dd>
+      </dl>
+
+      <pre class="idl">
+[Exposed=Window]
+interface HTMLInstallElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute USVString? manifest;
+  [CEReactions] attribute USVString? manifestId;
+  attribute EventHandler oninstallresult;
+};
+
+interface mixin ActivationBlockersMixin {
+  readonly attribute boolean isValid;
+  readonly attribute DOMString invalidReason;
+  attribute EventHandler onvalidationstatuschange;
+};
+HTMLInstallElement includes ActivationBlockersMixin;
+
+enum InstallResult {
+  "success",
+  "aborted",
+  "invalid_data"
+};
+
+[Exposed=Window]
+interface InstallResultEvent : Event {
+  constructor(DOMString type,
+              optional InstallResultEventInit eventInitDict = {});
+  readonly attribute InstallResult result;
+};
+
+dictionary InstallResultEventInit : EventInit {
+  InstallResult result = "aborted";
+};
+      </pre>
+
+      <p class="issue">
+        <strong>The event initializer default differs from Chromium.</strong>
+        Chromium's dictionary has no default and a script-constructed event can
+        have an empty internal result. This draft defaults to
+        <code>aborted</code> so every conforming event has a valid enum value.
+        Alternatively, the member could be required.
+      </p>
+
+      <p class="issue">
+        <strong>The content model is provisional.</strong>
+        Capability-element drafts vary between flow and phrasing fallback
+        content. A fallback link is a key use case, but nesting interactive
+        content inside a supported interactive element can create activation
+        and accessibility ambiguity. This draft provisionally allows phrasing
+        content and suppresses author children when the native control renders.
+      </p>
+
+      <p>
+        The <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element is not form-associated. It does not define a
+        <code>disabled</code> content attribute; activation blockers represent
+        whether the native control can currently be activated.
+      </p>
+
+      <p class="issue">
+        <strong>An author-controlled disabled state may be useful.</strong>
+        A standard <code>disabled</code> attribute could let authors remove the
+        control from interaction and accessibility navigation while application
+        state changes. The current proposal and Chromium implementation do not
+        expose one.
+      </p>
+
+      <p>
+        The {{ActivationBlockersMixin/isValid}},
+        {{ActivationBlockersMixin/invalidReason}}, and
+        {{ActivationBlockersMixin/onvalidationstatuschange}} members behave as
+        defined by [[CAPABILITY-ELEMENTS]]. The copy of their WebIDL above is a
+        temporary dependency bridge and does not redefine their processing.
+      </p>
+
+      <section>
+        <h3>Internal state and lifecycle</h3>
+
+        <p>
+          {{HTMLInstallElement}} uses the internal state defined by
+          <code>ActivationBlockersMixin</code>. It does not store a persistent
+          installation result; each result belongs to one
+          {{InstallResultEvent}}.
+        </p>
+
+        <p>The {{HTMLInstallElement/constructor()}} steps are:</p>
+        <ol class="algorithm">
+          <li>
+            Run
+            <a data-cite=
+              "!CAPABILITY-ELEMENTS#activationblockersmixin-initialization-steps">
+            <code>ActivationBlockersMixin</code>'s initialization steps</a>.
+          </li>
+        </ol>
+
+        <p>The {{HTMLInstallElement}} insertion steps are:</p>
+        <ol class="algorithm">
+          <li>
+            Run
+            <a data-cite=
+              "!CAPABILITY-ELEMENTS#activationblockersmixin-insertion-steps">
+            <code>ActivationBlockersMixin</code>'s insertion steps</a>.
+          </li>
+        </ol>
+
+        <p>The {{HTMLInstallElement}} removing steps are:</p>
+        <ol class="algorithm">
+          <li>
+            Run
+            <a data-cite=
+              "!CAPABILITY-ELEMENTS#activationblockersmixin-removing-steps">
+            <code>ActivationBlockersMixin</code>'s removing steps</a>.
+          </li>
+        </ol>
+
+        <p>
+          The default value of the
+          <a data-cite="html/interaction.html#attr-tabindex">
+          <code>tabindex</code></a> content attribute for
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> is 0.
+        </p>
+      </section>
+
+      <section>
+        <h3>Attributes</h3>
+
+        <p>
+          The <dfn data-dfn-type="element-attr" data-dfn-for="install"
+            data-export=""><code>manifest</code></dfn>
+          content attribute gives the URL of the target application manifest.
+          The {{HTMLInstallElement/manifest}} IDL attribute reflects the
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifest</a></code> content attribute.
+        </p>
+
+        <p>
+          The <dfn data-dfn-type="element-attr" data-dfn-for="install"
+            data-export=""><code>manifestid</code></dfn>
+          content attribute gives an optional absolute [=manifest ID
+          assertion=]. The {{HTMLInstallElement/manifestId}} IDL attribute
+          reflects the <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> content attribute.
+        </p>
+
+        <p>
+          Omitting both attributes selects [=current document=] mode. Supplying
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> without
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifest</a></code> is invalid install data.
+        </p>
+
+        <p class="issue">
+          <strong>URL reflection needs alignment with HTML conventions.</strong>
+          Chromium exposes nullable URL-reflecting attributes and currently
+          requires an absolute manifest ID. The final IDL should decide whether
+          missing attributes return null or the empty string, and whether
+          relative values follow normal HTML URL reflection.
+        </p>
+      </section>
+
+      <section>
+        <h3>Lifecycle and rendering</h3>
+
+        <p>
+          The <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+          element uses
+          <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
+          <code>ActivationBlockersMixin</code></a>'s initialization, insertion,
+          removing, visibility, occlusion, and style-validation processing.
+        </p>
+
+        <p>
+          A supporting user agent MUST render a user-agent-controlled control
+          whose accessible purpose is installation. The user agent controls the
+          control's text and iconography and MUST ensure the control remains
+          distinguishable, legible, focusable, and activatable using keyboard
+          and platform accessibility input.
+        </p>
+
+        <p>
+          While the native control is rendered, author children are
+          <a data-cite="html/dom.html#fallback-content">fallback content</a>
+          and are not rendered. A user agent that does not
+          support
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> treats
+          it as an {{HTMLUnknownElement}}, allowing its children to provide
+          ordinary HTML fallback.
+        </p>
+
+        <p>
+          The native control's rendering, intrinsic dimensions, accessible
+          properties, DOM-observable state, and supported pseudo-classes MUST
+          NOT vary based on whether the target application is installed.
+        </p>
+
+        <p class="issue">
+          <strong>Installed-state rendering conflicts across evidence.</strong>
+          The explainer permits an optional "Launch" appearance. Chromium
+          contains that appearance but disables it because width differences
+          reveal installed state. This draft provisionally requires
+          installed-state-independent rendering. Any future launch appearance
+          needs a complete side-channel design covering layout, CSS, canvas,
+          timing, and accessibility APIs.
+        </p>
+
+        <p>
+          A user agent MAY apply anti-clickjacking and anti-spam limits in
+          addition to the capability-element requirements. Numeric cooldowns,
+          per-page control limits, and reputation checks are user-agent policy
+          and are not interoperable state exposed by this specification.
+        </p>
+      </section>
+
+      <section>
+        <h3>Activation behavior</h3>
+
+        <p>
+          The <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+          element's [=EventTarget/activation behavior=] given an {{Event}}
+          <var>event</var> is:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            If <var>event</var>.{{Event/isTrusted}} is false, return.
+          </li>
+          <li>
+            If [=this=].{{ActivationBlockersMixin/isValid}} is false, return.
+          </li>
+          <li>
+            Let <var>document</var> be [=this=]'s
+            <a data-cite="dom#concept-node-document">node document</a>.
+          </li>
+          <li>
+            If <var>document</var> is not an [=eligible installing document=],
+            return.
+          </li>
+          <li>Let <var>manifestURL</var> be null.</li>
+          <li>Let <var>manifestID</var> be null.</li>
+          <li>
+            If [=this=] has a
+            <code><a data-link-type="element-attr"
+              data-link-for="install">manifestid</a></code> attribute but no
+            <code><a data-link-type="element-attr"
+              data-link-for="install">manifest</a></code> attribute,
+            [=queue an install result=] of <code>invalid_data</code> at
+            [=this=] and return.
+          </li>
+          <li>
+            If [=this=] has a
+            <code><a data-link-type="element-attr"
+              data-link-for="install">manifest</a></code> attribute:
+            <ol>
+              <li>
+                Set <var>manifestURL</var> to the result of the [=URL parser=]
+                on the attribute's value with <var>document</var>'s
+                [=Document/URL=] as base.
+              </li>
+              <li>
+                If <var>manifestURL</var> is failure,
+                [=queue an install result=] of <code>invalid_data</code> at
+                [=this=] and return.
+              </li>
+              <li>
+                If [=this=] has a
+                <code><a data-link-type="element-attr"
+                  data-link-for="install">manifestid</a></code> attribute, set
+                <var>manifestID</var> to the result of the [=URL parser=] on
+                that attribute's value with no base URL.
+              </li>
+              <li>
+                If <var>manifestID</var> is failure,
+                [=queue an install result=] of <code>invalid_data</code> at
+                [=this=] and return.
+              </li>
+            </ol>
+          </li>
+          <li>
+            Let <var>request</var> be a new [=web install request=] whose
+            [=web install request/document=] is <var>document</var>,
+            [=web install request/entry point=] is [=install element=],
+            [=web install request/target mode=] is [=current document=] if
+            <var>manifestURL</var> is null and [=explicit manifest=] otherwise,
+            [=web install request/manifest URL=] is <var>manifestURL</var>,
+            [=web install request/manifest ID=] is <var>manifestID</var>,
+            [=web install request/source element=] is [=this=], and
+            [=web install request/state=] is <code>created</code>.
+          </li>
+          <li>
+            Run the following steps [=in parallel=]:
+            <ol>
+              <li>
+                Let <var>outcome</var> be the result of
+                [=run a web install request=] with <var>request</var>.
+              </li>
+              <li>
+                If <var>outcome</var> is [=installation succeeded=],
+                [=queue an install result=] of <code>success</code> at
+                [=this=] and abort these substeps.
+              </li>
+              <li>
+                If <var>outcome</var> is [=invalid install data=],
+                [=queue an install result=] of <code>invalid_data</code> at
+                [=this=] and abort these substeps.
+              </li>
+              <li>
+                [=Queue an install result=] of <code>aborted</code> at
+                [=this=].
+              </li>
+            </ol>
+          </li>
+        </ol>
+
+        <p class="issue">
+          <strong>Blocked activation currently has no result event.</strong>
+          Chromium silently ignores untrusted, visually invalid, or
+          unregistered activation. That is consistent with capability-element
+          validation, but authors may expect every user activation to produce
+          <code>installresult</code>. The final text should preserve silence or
+          define a separate pre-activation signal deliberately.
+        </p>
+
+        <p>
+          The values used by an in-flight request are snapshotted during
+          activation. Later mutations to
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifest</a></code> or
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> affect only later
+          activations.
+        </p>
+
+        <p class="issue">
+          <strong>Detached-element result delivery is unresolved.</strong>
+          The implementation snapshots options, but focused tests do not define
+          whether removing or reinserting the element cancels an in-flight
+          installation or whether a queued result fires on a detached element.
+        </p>
+      </section>
+
+      <section id="install-result-event">
+        <h3>The <code>installresult</code> event</h3>
+
+        <table class="simple">
+          <thead>
+            <tr>
+              <th>Value</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>success</code></td>
+              <td>
+                Installation, or a user-approved action for an existing
+                application, succeeded.
+              </td>
+            </tr>
+            <tr>
+              <td><code>invalid_data</code></td>
+              <td>
+                The manifest URL, manifest contents, identity assertion, or
+                required installation metadata was invalid or unavailable.
+              </td>
+            </tr>
+            <tr>
+              <td><code>aborted</code></td>
+              <td>
+                The operation did not complete for a non-data reason.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          An {{InstallResultEvent}} has a
+          <dfn data-dfn-for="InstallResultEvent">[[\result]]</dfn> internal
+          slot. Its constructor initializes {{InstallResultEvent/[[result]]}}
+          to the value of
+          {{InstallResultEventInit/result}} in
+          <var>eventInitDict</var>.
+        </p>
+
+        <p>
+          To <dfn>queue an install result</dfn> of {{InstallResult}}
+          <var>result</var> at an {{HTMLInstallElement}}
+          <var>element</var>, [=queue an element task=] on the
+          [=user interaction task source=] with <var>element</var> to run these
+          steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>event</var> be a new {{InstallResultEvent}} whose
+            {{Event/type}} is <code>installresult</code>,
+            {{InstallResultEvent/result}} is <var>result</var>,
+            {{Event/bubbles}} is true, {{Event/cancelable}} is false, and
+            {{Event/composed}} is false.
+          </li>
+          <li>[=Dispatch=] <var>event</var> at <var>element</var>.</li>
+        </ol>
+
+        <p>
+          The following are the event handlers and their corresponding event
+          handler event types that user agents MUST support:
+        </p>
+
+        <table class="simple">
+          <thead>
+            <tr>
+              <th>Event handler</th>
+              <th>Event handler event type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><dfn data-dfn-for="HTMLInstallElement">
+                <code>oninstallresult</code></dfn></td>
+              <td><code>installresult</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="issue">
+          <strong>Event ordering and flags need WPT coverage.</strong>
+          Chromium queues the event on the user interaction task source,
+          bubbles it, and leaves it non-cancelable and non-composed. Tests do
+          not yet pin ordering relative to dialog closure, application launch,
+          navigation, or promise microtasks, nor the composed/cancelable flags.
+        </p>
+      </section>
+
+      <section data-dfn-for="InstallResultEvent">
+        <h3><dfn><code>result</code></dfn> attribute</h3>
+        <p>
+          The {{InstallResultEvent/result}} getter returns
+          [=this=].{{InstallResultEvent/[[result]]}}.
+        </p>
+      </section>
+    </section>
+
+    <section id="host-integrations">
+      <h2>Host-specification integrations</h2>
+
+      <section>
+        <h3>Web App Manifest</h3>
+        <p>
+          This specification supplies the manifest URL as both
+          <var>manifest URL</var> and <var>document URL</var>, and null as
+          <var>client</var>, when it invokes
+          <a data-cite="appmanifest#dfn-processing-a-manifest">
+          process a manifest</a> for an
+          [=explicit manifest=] target.
+        </p>
+        <p>
+          This specification additionally requires an explicitly declared
+          <code>id</code> when the caller did not supply a
+          [=manifest ID assertion=], even though Web App Manifest normally
+          computes a fallback identity.
+        </p>
+      </section>
+
+      <section>
+        <h3>WHATWG HTML</h3>
+        <p>
+          This specification adds {{Navigator/install()}},
+          {{HTMLInstallElement}}, the
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code> element,
+          and the <code>installresult</code> event to HTML.
+        </p>
+      </section>
+
+      <section>
+        <h3>Capability Elements</h3>
+        <p>
+          {{HTMLInstallElement}} includes
+          <code>ActivationBlockersMixin</code> and invokes that mixin's
+          initialization, insertion, removal, and activation-validation
+          processing. It does not observe or expose a capability permission
+          state through that mixin.
+        </p>
+      </section>
+
+      <section>
+        <h3>Permissions and Permissions Policy</h3>
+        <p>
+          This specification registers the
+          <code>web-app-installation</code> powerful feature and the
+          same-named policy-controlled feature. The Permissions API descriptor
+          requires no members beyond {{PermissionDescriptor/name}}.
+        </p>
+      </section>
+
+      <section>
+        <h3>Launch Handler</h3>
+        <p>
+          If an accepted action for an already-installed application launches
+          it, the user agent SHOULD apply the application's launch handling
+          behavior as defined by [[LAUNCH-HANDLER]].
+        </p>
+      </section>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy considerations</h2>
+
+      <p>
+        Web Install creates potential cross-origin information channels because
+        an installing origin can name another application's manifest. User
+        agents MUST NOT expose the target application's installed state directly
+        through this API.
+      </p>
+
+      <p>
+        In particular, installed state MUST NOT be distinguishable through:
+      </p>
+
+      <ul>
+        <li>promise or event results without a user-mediated action;</li>
+        <li>
+          the <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+          element's dimensions, label, style, or state;
+        </li>
+        <li>DOM, CSS, pseudo-class, or computed-style inspection;</li>
+        <li>canvas, SVG, or image readback;</li>
+        <li>the accessibility tree;</li>
+        <li>credentialed resource requests or shared cache state; or</li>
+        <li>an immediate success or failure path that bypasses equivalent UI.</li>
+      </ul>
+
+      <p>
+        Manifest and icon requests for explicit targets MUST omit credentials
+        and MUST NOT disclose cookies or other caller-specific authentication
+        state to the target origin.
+      </p>
+
+      <p>
+        Success means that the user accepted an installation or an action for an
+        existing application. It does not reveal which case occurred. A later
+        uninstall is not observable through this API.
+      </p>
+
+      <p>
+        User agents that do not support installation in private, guest, managed,
+        or other profile types SHOULD make that failure indistinguishable from
+        other non-data failures. They SHOULD avoid reliable timing differences
+        that reveal private-browsing state.
+      </p>
+
+      <p class="issue">
+        <strong>Some side channels remain outside the explicit result.</strong>
+        Focus and blur events, the presence and duration of browser UI, network
+        timing, and application launch can reveal partial information. The
+        final privacy design must state which channels are mitigated
+        normatively and which are acknowledged limitations.
+      </p>
+    </section>
+
+    <section id="security">
+      <h2>Security considerations</h2>
+
+      <p>
+        The user agent is the authority that validates installation input,
+        attributes the request, obtains user consent, and performs privileged
+        platform integration. Renderer- or script-side checks do not replace
+        authoritative validation before installation.
+      </p>
+
+      <p>
+        The confirmation UI MUST clearly distinguish the installing origin from
+        the target application's origin. Target names and icons MUST be treated
+        as untrusted presentation data and displayed so that they cannot obscure
+        or impersonate origin information.
+      </p>
+
+      <p>
+        The <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element's trusted rendering, visibility, occlusion, style validation,
+        focus behavior, and activation cooldown protect its click as a signal
+        of user intent. A user agent MAY apply stricter clickjacking,
+        reputation, rate-limit, or prompt-abuse defenses.
+      </p>
+
+      <p>
+        Direct manifest installation does not execute script from the target
+        application before consent. Manifest and resource parsing MUST be
+        bounded and MUST treat every URL and metadata field as untrusted.
+      </p>
+
+      <p class="issue">
+        <strong>Target authority for CDN-hosted manifests remains open.</strong>
+        This draft requires the processed start URL to be same-origin with the
+        manifest URL. That excludes common CDN deployment patterns but avoids a
+        manifest on one origin claiming an unrelated application on another.
+        Supporting CDN manifests requires a non-gatekeeping proof of authority.
+      </p>
+    </section>
+
+    <section id="accessibility">
+      <h2>Accessibility considerations</h2>
+
+      <p>
+        A supporting
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> element
+        maps to the accessibility semantics of a button. Its accessible name
+        comes from user-agent-controlled localized content, not from untrusted
+        author fallback content.
+      </p>
+
+      <p>
+        The element MUST be reachable and activatable using sequential focus,
+        keyboard activation, and platform accessibility input. Visual
+        validation and anti-clickjacking checks MUST work with forced colors,
+        high contrast, zoom, text scaling, and other user preferences.
+      </p>
+
+      <p class="issue">
+        <strong>Blocked-state accessibility is underspecified.</strong>
+        Chromium exposes a button role and default focusability, but focused
+        tests do not define how temporary visual blockers or policy failure map
+        to disabled state in the accessibility tree. The native control must
+        not appear actionable to assistive technology when activation is
+        impossible.
+      </p>
+
+      <p>
+        Authors SHOULD provide accessible status feedback when reacting to
+        <code>installresult</code>; dispatching the event does not itself create
+        an assistive-technology announcement.
+      </p>
+    </section>
+
+    <section id="internationalization">
+      <h2>Internationalization considerations</h2>
+
+      <p>
+        The user agent uses the
+        <a data-cite="html/dom.html#attr-lang"><code>lang</code></a> and
+        <a data-cite="html/dom.html#attr-dir"><code>dir</code></a> attributes
+        applicable to
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> to
+        localize and order the native control's own label. It uses Web App
+        Manifest's localization processing when displaying target application
+        metadata.
+      </p>
+
+      <p>
+        User agents MUST isolate bidirectional app names, URLs, and origins from
+        surrounding UI and MUST safely elide or wrap long localized strings
+        without hiding security-relevant origin information.
+      </p>
+
+      <p class="issue">
+        <strong>Control and manifest locale selection can diverge.</strong>
+        Chromium localizes the control from the inherited document language,
+        while target metadata selection can follow user-agent locale
+        preferences. The final specification should define this as intentional
+        or choose one locale negotiation model.
+      </p>
+    </section>
+
+    <section class="informative" id="testing">
+      <h2>Testing considerations</h2>
+
+      <p>
+        Interoperable tests should cover both entry points against the same
+        target and outcome matrix. In addition to WebIDL and feature-detection
+        tests, the suite should cover:
+      </p>
+
+      <ul>
+        <li>
+          current-document and explicit-manifest target resolution;
+        </li>
+        <li>
+          same-origin and cross-origin caller, manifest, identity, start URL,
+          and icon combinations;
+        </li>
+        <li>
+          Fetch mode, credentials, redirects, MIME types, referrers, cookies,
+          and service-worker interception;
+        </li>
+        <li>
+          explicit and computed identity, including member-presence checks;
+        </li>
+        <li>
+          missing, malformed, and partially valid manifest members;
+        </li>
+        <li>
+          permission, Permissions Policy, sandbox, fenced-frame, and activation
+          failures;
+        </li>
+        <li>
+          new installation, existing-application action, dismissal, navigation,
+          destruction, and concurrency;
+        </li>
+        <li>
+          API exception and promise timing and element event value, flags,
+          ordering, and task source;
+        </li>
+        <li>
+          element mutation, removal, reinsertion, fallback content, keyboard
+          activation, and accessibility-tree state; and
+        </li>
+        <li>
+          installed-state and private-mode side channels, including timing,
+          layout, CSS, canvas, accessibility, cache, and network observations.
+        </li>
+      </ul>
+
+      <p>
+        Existing Chromium tests cover many product behaviors, but they do not
+        by themselves establish interoperability requirements. Every normative
+        requirement in this draft should map to a Web Platform Test or to a
+        documented reason that cross-browser automation is not possible.
+      </p>
+    </section>
+
+    <section class="informative" id="open-issues">
+      <h2>Open issues index</h2>
+      <p>
+        Open issues are recorded inline beside the affected definitions and
+        algorithms. Before advancement, editors should ensure each inline issue
+        is linked to a public repository issue and that its resolution updates
+        the associated Web Platform Tests.
+      </p>
+    </section>
+
+    <section id="conformance"></section>
+
+    <section class="appendix informative" id="acknowledgements">
+      <h2>Acknowledgements</h2>
+      <p>
+        The editors thank Mike West, Diego González, Daniel Murphy, Rob Paveza,
+        Alex Russell, Arthur Sonzogni, and participants in WICG, WebApps WG,
+        TAG, browser standards-position discussions, and early developer trials
+        for feedback that informed this draft.
+      </p>
+    </section>
+  </body>
+</html>
