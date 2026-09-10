@@ -350,18 +350,6 @@ await navigator.install({
         <dt><dfn data-dfn-for="web install request">manifest ID</dfn></dt>
         <dd>The request's optional [=manifest ID assertion=].</dd>
 
-        <dt><dfn data-dfn-for="web install request">source element</dfn></dt>
-        <dd>
-          The initiating {{HTMLInstallElement}} for a
-          [=entry-point kind/declarative=] request; otherwise null.
-        </dd>
-
-        <dt><dfn data-dfn-for="web install request">state</dfn></dt>
-        <dd>
-          One of <code>created</code>, <code>resolving candidate</code>,
-          <code>awaiting permission</code>, <code>awaiting confirmation</code>,
-          <code>installing</code>, or <code>complete</code>.
-        </dd>
       </dl>
 
       <p>
@@ -409,38 +397,19 @@ await navigator.install({
           installation metadata was invalid or unavailable.
         </dd>
 
-        <dt><dfn data-export="">user aborted installation</dfn></dt>
-        <dd>The user dismissed or declined user-agent installation UI.</dd>
-
-        <dt><dfn data-export="">installation not allowed</dfn></dt>
+        <dt><dfn data-export="">installation aborted</dfn></dt>
         <dd>
-          Permission, policy, security context, or anti-abuse processing
-          disallowed the request.
-        </dd>
-
-        <dt><dfn data-export="">installation state invalid</dfn></dt>
-        <dd>
-          The initiating document or its browsing context could not initiate or
-          continue the operation.
-        </dd>
-
-        <dt><dfn data-export="">installation not supported</dfn></dt>
-        <dd>
-          The user agent or host platform could not install the candidate
-          application in the current profile or environment.
-        </dd>
-
-        <dt><dfn data-export="">installation operation aborted</dfn></dt>
-        <dd>
-          The request ended for another reason, including a concurrent
-          operation, navigation, destruction, or internal failure.
+          The request did not complete for a reason other than
+          [=invalid install data=], including user dismissal, permission or
+          policy denial, an invalid initiating document, an unsupported
+          environment, a concurrent operation, navigation, destruction, or
+          internal failure.
         </dd>
       </dl>
 
       <p>
-        The internal outcome vocabulary is intentionally more detailed than
-        either public result surface. Each entry point maps it to a
-        privacy-limited public result.
+        The outcome vocabulary is shared by both entry points. Each entry point
+        maps an outcome to its corresponding public result.
       </p>
 
       <p>
@@ -510,10 +479,6 @@ await navigator.install({
 
       <ol class="algorithm">
         <li>
-          Set <var>request</var>'s [=web install request/state=] to
-          <code>complete</code>.
-        </li>
-        <li>
           Let <var>traversable</var> be <var>request</var>'s
           [=web install request/document=]'s [=top-level traversable=], if it
           has one; otherwise null.
@@ -539,7 +504,7 @@ await navigator.install({
         <li>
           If <var>document</var> is not an [=eligible initiating document=],
           return the result of [=finish a web install request=] with
-          <var>request</var> and [=installation state invalid=].
+          <var>request</var> and [=installation aborted=].
         </li>
         <li>
           Let <var>traversable</var> be <var>document</var>'s
@@ -550,7 +515,7 @@ await navigator.install({
           [=top-level traversable/active web install request=] is not null,
           return
           the result of [=finish a web install request=] with
-          <var>request</var> and [=installation operation aborted=].
+          <var>request</var> and [=installation aborted=].
         </li>
         <li>
           Set <var>traversable</var>'s
@@ -573,18 +538,9 @@ await navigator.install({
         <li>Let <var>candidate</var> be <var>candidateResult</var>.</li>
         <li>
           If <var>document</var> is no longer an
-          [=eligible initiating document=]:
-          <ol>
-            <li>
-              If <var>traversable</var>'s
-              [=top-level traversable/active web install request=] is
-              <var>request</var>, set it to null.
-            </li>
-            <li>
-              Return the result of [=finish a web install request=] with
-              <var>request</var> and [=installation state invalid=].
-            </li>
-          </ol>
+          [=eligible initiating document=], return the result of
+          [=finish a web install request=] with <var>request</var>
+          and [=installation aborted=].
         </li>
         <li>
           Let <var>permissionGranted</var> be the result of
@@ -593,7 +549,7 @@ await navigator.install({
         <li>
           If <var>permissionGranted</var> is false, return the result of
           [=finish a web install request=] with <var>request</var> and
-          [=installation not allowed=].
+          [=installation aborted=].
         </li>
         <li>
           Let <var>outcome</var> be the result of
@@ -630,7 +586,7 @@ await navigator.install({
         fully active, or ceases to be the active document of its top-level
         traversable before processing completes, the user agent MUST cancel
         associated user interface and complete the request with
-        [=installation state invalid=].
+        [=installation aborted=].
       </p>
 
       <p class="issue">
@@ -709,10 +665,6 @@ await navigator.install({
 
         <ol class="algorithm">
           <li>
-            Set <var>request</var>'s [=web install request/state=] to
-            <code>resolving candidate</code>.
-          </li>
-          <li>
             Let <var>document</var> be <var>request</var>'s
             [=web install request/document=].
           </li>
@@ -777,10 +729,6 @@ await navigator.install({
         </p>
 
         <ol class="algorithm">
-          <li>
-            Set <var>request</var>'s [=web install request/state=] to
-            <code>resolving candidate</code>.
-          </li>
           <li>
             Let <var>manifestURL</var> be <var>request</var>'s
             [=web install request/manifest URL=].
@@ -1110,10 +1058,6 @@ await navigator.install({
             return true.
           </li>
           <li>
-            Set <var>request</var>'s [=web install request/state=] to
-            <code>awaiting permission</code>.
-          </li>
-          <li>
             Let <var>descriptor</var> be a new {{PermissionDescriptor}} whose
             {{PermissionDescriptor/name}} is
             <code>web-app-installation</code>.
@@ -1185,10 +1129,6 @@ await navigator.install({
 
       <ol class="algorithm">
         <li>
-          Set <var>request</var>'s [=web install request/state=] to
-          <code>awaiting confirmation</code>.
-        </li>
-        <li>
           If the user agent determines that an
           <a data-cite="appmanifest#dfn-installed-web-application">
           installed web application</a>
@@ -1201,10 +1141,13 @@ await navigator.install({
             </li>
             <li>
               If the user declines or dismisses that UI, return
-              [=user aborted installation=].
+              [=installation aborted=].
             </li>
             <li>
-              Return [=installation succeeded=] and perform the accepted action.
+              Perform or initiate the accepted action, then return
+              [=installation succeeded=]. The observable outcome MUST NOT
+              reveal anything about the installation state of the candidate
+              application.
             </li>
           </ol>
         </li>
@@ -1215,11 +1158,7 @@ await navigator.install({
         </li>
         <li>
           If <var>accepted</var> is false, return
-          [=user aborted installation=].
-        </li>
-        <li>
-          Set <var>request</var>'s [=web install request/state=] to
-          <code>installing</code>.
+          [=installation aborted=].
         </li>
         <li>
           Ask the user agent to install an
@@ -1231,7 +1170,7 @@ await navigator.install({
         </li>
         <li>
           If the user agent cannot complete installation, return
-          [=installation operation aborted=].
+          [=installation aborted=].
         </li>
         <li>Return [=installation succeeded=].</li>
       </ol>
@@ -1335,9 +1274,7 @@ dictionary WebInstallResult {};
             [=entry-point kind/imperative=],
             [=web install request/application source=] is [=current document=],
             [=web install request/manifest URL=] and
-            [=web install request/manifest ID=] are null,
-            [=web install request/source element=] is null, and
-            [=web install request/state=] is <code>created</code>.
+            [=web install request/manifest ID=] are null.
           </li>
           <li>
             Return the result of [=settle a navigator install promise=] with
@@ -1396,9 +1333,7 @@ dictionary WebInstallResult {};
             [=entry-point kind/imperative=],
             [=web install request/application source=] is [=explicit manifest=],
             [=web install request/manifest URL=] is <var>manifestURL</var>,
-            [=web install request/manifest ID=] is <var>manifestID</var>,
-            [=web install request/source element=] is null, and
-            [=web install request/state=] is <code>created</code>.
+            [=web install request/manifest ID=] is <var>manifestID</var>.
           </li>
           <li>
             Return the result of [=settle a navigator install promise=] with
@@ -1478,13 +1413,11 @@ dictionary WebInstallResult {};
         </ol>
 
         <p class="issue">
-          <strong>Chromium coarsens more outcomes to AbortError.</strong>
-          Permission denial, unsupported profiles, navigation, concurrency, and
-          internal failure currently map to <code>AbortError</code>. The more
-          specific mappings above reflect common DOMException conventions but
-          expose additional information. Resolve this together with the public
-          outcome taxonomy issue; until then, implementations should not assume
-          these distinctions are stable.
+          <strong>The aborted result remains intentionally coarse.</strong>
+          Permission denial, unsupported profiles, navigation, concurrency, user
+          dismissal, and internal failure all map to <code>AbortError</code>.
+          Resolve this together with the public outcome taxonomy issue; until
+          then, implementations should not assume this result is stable.
         </p>
       </section>
     </section>
@@ -1827,9 +1760,7 @@ dictionary InstallResultEventInit : EventInit {
             if <var>manifestURL</var> is null and [=explicit manifest=]
             otherwise,
             [=web install request/manifest URL=] is <var>manifestURL</var>,
-            [=web install request/manifest ID=] is <var>manifestID</var>,
-            [=web install request/source element=] is [=this=], and
-            [=web install request/state=] is <code>created</code>.
+            [=web install request/manifest ID=] is <var>manifestID</var>.
           </li>
           <li>
             Run the following steps [=in parallel=]:
@@ -2059,12 +1990,7 @@ dictionary InstallResultEventInit : EventInit {
       <p>
         The user agent MUST ensure that the initiating document cannot distinguish
         whether the candidate application was newly installed or was already
-        installed, including through results, timing, user-interface behavior,
-        focus or visibility changes, or application launch behavior.
-      </p>
-
-      <p>
-        In particular, installed state MUST NOT be distinguishable through:
+        installed through:
       </p>
 
       <ul>
@@ -2079,6 +2005,11 @@ dictionary InstallResultEventInit : EventInit {
         <li>credentialed resource requests or shared cache state; or</li>
         <li>an immediate success or failure path that bypasses equivalent UI.</li>
       </ul>
+
+      <p>
+        User agents SHOULD minimize distinguishable timing, focus, visibility,
+        user-interface, and application-launch behavior between those cases.
+      </p>
 
       <p>
         Manifest and icon requests for explicit targets MUST omit credentials
@@ -2096,19 +2027,11 @@ dictionary InstallResultEventInit : EventInit {
         User agents that do not support installation in private, guest, managed,
         or other profile types MUST process invalid installation data
         consistently with supported profiles. After installation data has been
-        validated, they MUST make [=installation not supported=]
-        indistinguishable from [=installation operation aborted=] through
-        public results. They SHOULD avoid reliable timing differences that
-        reveal private-browsing state.
+        validated, they MUST return [=installation aborted=]. They SHOULD avoid
+        reliable timing differences that distinguish an unsupported profile
+        from other reasons for [=installation aborted=].
       </p>
 
-      <p class="issue">
-        <strong>Some side channels remain outside the explicit result.</strong>
-        Focus and blur events, the presence and duration of browser UI, network
-        timing, and application launch can reveal partial information. The
-        final privacy design must state which channels are mitigated
-        normatively and which are acknowledged limitations.
-      </p>
     </section>
 
     <section id="security">
