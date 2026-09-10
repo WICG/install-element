@@ -157,8 +157,8 @@
             Require a user-mediated decision for every installation attempt.
           </li>
           <li>
-            Reuse one target-resolution, validation, consent, installation, and
-            privacy model across both entry points.
+            Reuse one application-resolution, validation, consent,
+            installation, and privacy model across both entry points.
           </li>
           <li>
             Avoid exposing whether an arbitrary web application is already
@@ -295,7 +295,7 @@ await navigator.install({
       </p>
 
       <p>
-        An <dfn data-export="">installing document</dfn> is the {{Document}}
+        An <dfn data-export="">initiating document</dfn> is the {{Document}}
         whose {{Navigator}} or
         <code>&lt;<a data-link-type="element">install</a>&gt;</code> element
         initiated a Web Install request.
@@ -303,19 +303,23 @@ await navigator.install({
 
       <p>
         An <dfn data-export="">entry-point kind</dfn> is either
-        <dfn data-export="">navigator</dfn> or
-        <dfn data-export="">install element</dfn>.
+        <dfn data-dfn-for="entry-point kind" data-export="">imperative</dfn>,
+        for a request initiated by {{Navigator/install()}}, or
+        <dfn data-dfn-for="entry-point kind" data-export="">declarative</dfn>,
+        for a request initiated by the
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> element's
+        [=EventTarget/activation behavior=].
       </p>
 
       <p>
-        A <dfn data-export="">target mode</dfn> is either
+        A <dfn data-export="">application source</dfn> is either
         <dfn data-export="">current document</dfn> or
         <dfn data-export="">explicit manifest</dfn>.
       </p>
 
       <p>
         A <dfn data-export="">manifest ID assertion</dfn> is an optional URL
-        supplied by the caller for comparison with the processed
+        supplied by the caller representing the expected processed
         <a data-cite="appmanifest#dfn-id">manifest id</a>.
       </p>
     </section>
@@ -330,18 +334,17 @@ await navigator.install({
 
       <dl>
         <dt><dfn data-dfn-for="web install request">document</dfn></dt>
-        <dd>The [=installing document=].</dd>
+        <dd>The [=initiating document=].</dd>
 
         <dt><dfn data-dfn-for="web install request">entry point</dfn></dt>
         <dd>The request's [=entry-point kind=].</dd>
 
-        <dt><dfn data-dfn-for="web install request">target mode</dfn></dt>
-        <dd>The request's [=target mode=].</dd>
+        <dt><dfn data-dfn-for="web install request">application source</dfn></dt>
+        <dd>The request's [=application source=].</dd>
 
         <dt><dfn data-dfn-for="web install request">manifest URL</dfn></dt>
         <dd>
-          Null for [=current document=] requests; otherwise the parsed manifest
-          URL.
+          The manifest URL for an [=explicit manifest=] request; otherwise null.
         </dd>
 
         <dt><dfn data-dfn-for="web install request">manifest ID</dfn></dt>
@@ -349,40 +352,40 @@ await navigator.install({
 
         <dt><dfn data-dfn-for="web install request">source element</dfn></dt>
         <dd>
-          The initiating {{HTMLInstallElement}} for an [=install element=]
-          request; otherwise null.
+          The initiating {{HTMLInstallElement}} for a
+          [=entry-point kind/declarative=] request; otherwise null.
         </dd>
 
         <dt><dfn data-dfn-for="web install request">state</dfn></dt>
         <dd>
-          One of <code>created</code>, <code>resolving target</code>,
+          One of <code>created</code>, <code>resolving candidate</code>,
           <code>awaiting permission</code>, <code>awaiting confirmation</code>,
           <code>installing</code>, or <code>complete</code>.
         </dd>
       </dl>
 
       <p>
-        A <dfn data-export="">web install target</dfn> is a struct with the
+        A <dfn data-export="">web install candidate</dfn> is a struct with the
         following [=struct/items=]:
       </p>
 
       <dl>
-        <dt><dfn data-dfn-for="web install target">manifest</dfn></dt>
+        <dt><dfn data-dfn-for="web install candidate">manifest</dfn></dt>
         <dd>
           A
           <a data-cite="appmanifest#dfn-processed-manifest">
           processed manifest</a>.
         </dd>
 
-        <dt><dfn data-dfn-for="web install target">manifest URL</dfn></dt>
+        <dt><dfn data-dfn-for="web install candidate">manifest URL</dfn></dt>
         <dd>The URL from which the manifest was obtained.</dd>
 
-        <dt><dfn data-dfn-for="web install target">identity</dfn></dt>
+        <dt><dfn data-dfn-for="web install candidate">identity</dfn></dt>
         <dd>
           The processed <a data-cite="appmanifest#dfn-id">manifest id</a>.
         </dd>
 
-        <dt><dfn data-dfn-for="web install target">start URL</dfn></dt>
+        <dt><dfn data-dfn-for="web install candidate">start URL</dfn></dt>
         <dd>
           The processed
           <a data-cite="appmanifest#dfn-start_url">start URL</a>.
@@ -417,14 +420,14 @@ await navigator.install({
 
         <dt><dfn data-export="">installation state invalid</dfn></dt>
         <dd>
-          The installing document or its browsing context could not initiate or
+          The initiating document or its browsing context could not initiate or
           continue the operation.
         </dd>
 
         <dt><dfn data-export="">installation not supported</dfn></dt>
         <dd>
-          The user agent or host platform could not install the target in the
-          current profile or environment.
+          The user agent or host platform could not install the candidate
+          application in the current profile or environment.
         </dd>
 
         <dt><dfn data-export="">installation operation aborted</dfn></dt>
@@ -483,8 +486,8 @@ await navigator.install({
           <li>Obtain installation permission when the request requires it.</li>
           <li>
             Present user-controlled confirmation UI and, if accepted, install
-            the target or perform an approved action for an already-installed
-            application.
+            the application or perform an approved action for an
+            already-installed application.
           </li>
           <li>
             Finish the request. The initiating entry point then maps the
@@ -534,7 +537,7 @@ await navigator.install({
           [=web install request/document=].
         </li>
         <li>
-          If <var>document</var> is not an [=eligible installing document=],
+          If <var>document</var> is not an [=eligible initiating document=],
           return the result of [=finish a web install request=] with
           <var>request</var> and [=installation state invalid=].
         </li>
@@ -555,22 +558,22 @@ await navigator.install({
           <var>request</var>.
         </li>
         <li>
-          If <var>request</var>'s [=web install request/target mode=] is
-          [=current document=], let <var>targetResult</var> be the result of
-          [=resolve a current-document install target=] for
-          <var>request</var>. Otherwise, let <var>targetResult</var> be the
-          result of [=resolve an explicit manifest install target=] for
-          <var>request</var>.
+          If <var>request</var>'s [=web install request/application source=] is
+          [=current document=], let <var>candidateResult</var> be the result of
+          [=resolve a web install candidate from the current document=] for
+          <var>request</var>. Otherwise, let <var>candidateResult</var> be the
+          result of [=resolve a web install candidate from an explicit
+          manifest=] for <var>request</var>.
         </li>
         <li>
-          If <var>targetResult</var> is a [=web install outcome=], return the
+          If <var>candidateResult</var> is a [=web install outcome=], return the
           result of [=finish a web install request=] with
-          <var>request</var> and <var>targetResult</var>.
+          <var>request</var> and <var>candidateResult</var>.
         </li>
-        <li>Let <var>target</var> be <var>targetResult</var>.</li>
+        <li>Let <var>candidate</var> be <var>candidateResult</var>.</li>
         <li>
           If <var>document</var> is no longer an
-          [=eligible installing document=]:
+          [=eligible initiating document=]:
           <ol>
             <li>
               If <var>traversable</var>'s
@@ -594,8 +597,8 @@ await navigator.install({
         </li>
         <li>
           Let <var>outcome</var> be the result of
-          [=perform web installation=] with <var>request</var> and
-          <var>target</var>.
+          [=perform a Web Install action=] with <var>request</var> and
+          <var>candidate</var>.
         </li>
         <li>
           Return the result of [=finish a web install request=] with
@@ -623,7 +626,7 @@ await navigator.install({
       </p>
 
       <p>
-        If the [=installing document=] navigates, is destroyed, ceases to be
+        If the [=initiating document=] navigates, is destroyed, ceases to be
         fully active, or ceases to be the active document of its top-level
         traversable before processing completes, the user agent MUST cancel
         associated user interface and complete the request with
@@ -644,7 +647,7 @@ await navigator.install({
 
       <p>
         To determine whether a {{Document}} <var>document</var> is an
-        <dfn>eligible installing document</dfn>, run the following steps:
+        <dfn>eligible initiating document</dfn>, run the following steps:
       </p>
 
       <ol class="algorithm">
@@ -692,21 +695,22 @@ await navigator.install({
       </p>
     </section>
 
-    <section id="target-resolution">
-      <h2>Resolving an installation target</h2>
+    <section id="candidate-resolution">
+      <h2>Resolving a web install candidate</h2>
 
-      <section id="current-document-target">
-        <h3>Current-document target</h3>
+      <section id="current-document-candidate">
+        <h3>Resolving from the current document</h3>
 
         <p>
-          To <dfn>resolve a current-document install target</dfn> for a
-          [=web install request=] <var>request</var>, run the following steps:
+          To <dfn>resolve a web install candidate from the current
+          document</dfn> for a [=web install request=] <var>request</var>, run
+          the following steps:
         </p>
 
         <ol class="algorithm">
           <li>
             Set <var>request</var>'s [=web install request/state=] to
-            <code>resolving target</code>.
+            <code>resolving candidate</code>.
           </li>
           <li>
             Let <var>document</var> be <var>request</var>'s
@@ -739,16 +743,16 @@ await navigator.install({
             [=invalid install data=].
           </li>
           <li>
-            Let <var>target</var> be a new [=web install target=] whose
-            [=web install target/manifest=] is <var>manifest</var>,
-            [=web install target/manifest URL=] is <var>manifestURL</var>,
-            [=web install target/identity=] is <var>identity</var>, and
-            [=web install target/start URL=] is <var>manifest</var>'s
+            Let <var>candidate</var> be a new [=web install candidate=] whose
+            [=web install candidate/manifest=] is <var>manifest</var>,
+            [=web install candidate/manifest URL=] is <var>manifestURL</var>,
+            [=web install candidate/identity=] is <var>identity</var>, and
+            [=web install candidate/start URL=] is <var>manifest</var>'s
             <a data-cite="appmanifest#dfn-start_url">start URL</a>.
           </li>
           <li>
-            Return the result of [=validate a web install target=] with
-            <var>request</var> and <var>target</var>.
+            Return the result of [=validate a web install candidate=] with
+            <var>request</var> and <var>candidate</var>.
           </li>
         </ol>
 
@@ -763,18 +767,19 @@ await navigator.install({
         </p>
       </section>
 
-      <section id="explicit-manifest-target">
-        <h3>Explicit manifest target</h3>
+      <section id="explicit-manifest-candidate">
+        <h3>Resolving from an explicit manifest</h3>
 
         <p>
-          To <dfn>resolve an explicit manifest install target</dfn> for a
-          [=web install request=] <var>request</var>, run the following steps:
+          To <dfn>resolve a web install candidate from an explicit
+          manifest</dfn> for a [=web install request=] <var>request</var>, run
+          the following steps:
         </p>
 
         <ol class="algorithm">
           <li>
             Set <var>request</var>'s [=web install request/state=] to
-            <code>resolving target</code>.
+            <code>resolving candidate</code>.
           </li>
           <li>
             Let <var>manifestURL</var> be <var>request</var>'s
@@ -782,23 +787,23 @@ await navigator.install({
           </li>
           <li>
             If <var>manifestURL</var> is not an HTTP(S) URL whose
-            [=url/origin=] is not
+            [=url/origin=] is
             <a data-cite="secure-contexts#is-origin-trustworthy">
             potentially trustworthy</a>, return
             [=invalid install data=].
           </li>
           <li>
-            Let <var>response</var> be the result of
+            Let <var>bodyBytes</var> be the result of
             [=fetch an install manifest=] from <var>manifestURL</var>.
           </li>
           <li>
-            If <var>response</var> is failure, return
+            If <var>bodyBytes</var> is failure, return
             [=invalid install data=].
           </li>
           <li>
             Let <var>manifest</var> be the result of
-            [=process an install manifest response=] with
-            <var>response</var> and <var>manifestURL</var>.
+            [=process install manifest bytes=] with <var>bodyBytes</var> and
+            <var>manifestURL</var>.
           </li>
           <li>
             If <var>manifest</var> is failure, return
@@ -819,16 +824,16 @@ await navigator.install({
             <code>id</code> member, return [=invalid install data=].
           </li>
           <li>
-            Let <var>target</var> be a new [=web install target=] whose
-            [=web install target/manifest=] is <var>manifest</var>,
-            [=web install target/manifest URL=] is <var>manifestURL</var>,
-            [=web install target/identity=] is <var>identity</var>, and
-            [=web install target/start URL=] is <var>manifest</var>'s
+            Let <var>candidate</var> be a new [=web install candidate=] whose
+            [=web install candidate/manifest=] is <var>manifest</var>,
+            [=web install candidate/manifest URL=] is <var>manifestURL</var>,
+            [=web install candidate/identity=] is <var>identity</var>, and
+            [=web install candidate/start URL=] is <var>manifest</var>'s
             <a data-cite="appmanifest#dfn-start_url">start URL</a>.
           </li>
           <li>
-            Return the result of [=validate a web install target=] with
-            <var>request</var> and <var>target</var>.
+            Return the result of [=validate a web install candidate=] with
+            <var>request</var> and <var>candidate</var>.
           </li>
         </ol>
 
@@ -856,24 +861,17 @@ await navigator.install({
 
         <ol class="algorithm">
           <li>
-            Let <var>request</var> be a new {{Request}} whose
-            [=request/URL=] is <var>manifestURL</var>,
-            [=request/method=] is <code>GET</code>,
-            [=request/destination=] is <code>manifest</code>,
-            [=request/credentials mode=] is <code>omit</code>, and
-            [=request/redirect mode=] is <code>error</code>.
+            Let <var>response</var> be the result of the user agent internally
+            retrieving <var>manifestURL</var> using <code>GET</code>.
           </li>
           <li>
-            Set <var>request</var>'s [=request/referrer=] to
-            <code>no-referrer</code>.
+            The retrieval MUST omit credentials and referrer information.
           </li>
           <li>
-            Set <var>request</var>'s [=request/mode=] to
-            <code>cors</code>.
+            The retrieval MUST NOT require a [=CORS check=] to succeed.
           </li>
           <li>
-            Let <var>response</var> be the result of [=fetching=]
-            <var>request</var>.
+            If the retrieval encounters a redirect, return failure.
           </li>
           <li>
             If <var>response</var> is a [=network error=], return failure.
@@ -882,27 +880,31 @@ await navigator.install({
             If <var>response</var>'s [=response/status=] is not an
             [=ok status=], return failure.
           </li>
-          <li>Return <var>response</var>.</li>
+          <li>
+            The user agent MUST NOT reject <var>response</var> solely because
+            of its MIME type.
+          </li>
+          <li>
+            Let <var>bodyBytes</var> be the result of
+            <a data-cite="fetch#body-fully-read">fully reading</a>
+            <var>response</var>'s [=response/body=].
+          </li>
+          <li>If fully reading the body failed, return failure.</li>
+          <li>
+            The user agent MUST NOT expose <var>response</var> or
+            <var>bodyBytes</var> to the [=initiating document=].
+          </li>
+          <li>Return <var>bodyBytes</var>.</li>
         </ol>
 
         <p class="issue">
-          <strong>The Fetch mode is a blocking design question.</strong>
-          Chromium performs a browser-process, credentialless fetch without
-          explicitly setting a Fetch mode. A <code>cors</code> request requires
-          the target server to opt in, which may conflict with the proposal's
-          goal that any catalog can offer an application. A
-          <code>no-cors</code> request normally yields an opaque response that
-          cannot be parsed by web content. The provisional
-          <code>cors</code> step above must be replaced by an agreed Fetch
-          integration before this algorithm is implementable across engines.
-        </p>
-
-        <p class="issue">
-          <strong>Redirect and MIME behavior need agreement.</strong>
-          Chromium rejects every redirect and parses successful bodies without
-          checking MIME type. The explainers do not fully specify either
-          behavior. This draft provisionally rejects redirects and does not add
-          a MIME requirement, matching current implementation.
+          <strong>Exact Fetch integration remains unresolved.</strong>
+          The steps above describe the intended network and exposure behavior
+          directly. Chromium implements them using an internal browser-process
+          request. This draft does not yet define the request destination,
+          response tainting model, service-worker interception, cache
+          partitioning, CSP integration, or Private Network Access integration.
+          These details require coordination with Fetch before advancement.
         </p>
 
         <p>
@@ -914,30 +916,22 @@ await navigator.install({
         <p>
           If the user agent fetches icons or other target resources before the
           user accepts installation, those requests MUST omit credentials and
-          caller-specific authentication state. Their Fetch mode, referrer, cache
-          behavior, and cross-origin requirements need the same explicit review as
-          the manifest request.
+          caller-specific authentication state. Their referrer, cache behavior,
+          and cross-origin requirements need the same integration review as the
+          manifest retrieval.
         </p>
       </section>
 
       <section>
-        <h3>Processing an install manifest response</h3>
+        <h3>Processing an install manifest</h3>
 
         <p>
-          To <dfn>process an install manifest response</dfn> given a
-          {{Response}} <var>response</var> and URL
-          <var>manifestURL</var>, run the following steps:
+          To <dfn>process install manifest bytes</dfn> given a byte sequence
+          <var>bodyBytes</var> and URL <var>manifestURL</var>, run the following
+          steps:
         </p>
 
         <ol class="algorithm">
-          <li>
-            Let <var>bodyBytes</var> be the result of
-            <a data-cite="fetch#body-fully-read">fully reading</a>
-            <var>response</var>'s [=response/body=].
-          </li>
-          <li>
-            If fully reading the body failed, return failure.
-          </li>
           <li>
             Let <var>manifest</var> be the result of running
             <a data-cite="appmanifest#dfn-processing-a-manifest">
@@ -965,7 +959,7 @@ await navigator.install({
 
         <p class="issue">
           <strong>Source-member presence must survive processing.</strong>
-          Both target modes need to distinguish an explicitly declared
+          Both application sources need to distinguish an explicitly declared
           <code>id</code> or <code>start_url</code> from Web App Manifest's
           computed defaults. The current processed-manifest model does not
           clearly export those presence bits. This specification needs either
@@ -975,18 +969,19 @@ await navigator.install({
       </section>
 
       <section>
-        <h3>Validating a web install target</h3>
+        <h3>Validating a web install candidate</h3>
 
         <p>
-          To <dfn>validate a web install target</dfn> given a
+          To <dfn>validate a web install candidate</dfn> given a
           [=web install request=] <var>request</var> and
-          [=web install target=] <var>target</var>, run the following steps:
+          [=web install candidate=] <var>candidate</var>, run the following
+          steps:
         </p>
 
         <ol class="algorithm">
           <li>
-            Let <var>manifest</var> be <var>target</var>'s
-            [=web install target/manifest=].
+            Let <var>manifest</var> be <var>candidate</var>'s
+            [=web install candidate/manifest=].
           </li>
           <li>
             If the source manifest did not explicitly contain a valid
@@ -1005,13 +1000,13 @@ await navigator.install({
             <code>any</code>, return [=invalid install data=].
           </li>
           <li>
-            If <var>request</var>'s [=web install request/target mode=] is
-            [=explicit manifest=], and <var>target</var>'s
-            [=web install target/start URL=] is not [=same origin=] with
-            <var>target</var>'s [=web install target/manifest URL=], return
-            [=invalid install data=].
+            If <var>request</var>'s [=web install request/application source=]
+            is [=explicit manifest=], and <var>candidate</var>'s
+            [=web install candidate/start URL=] is not [=same origin=] with
+            <var>candidate</var>'s [=web install candidate/manifest URL=],
+            return [=invalid install data=].
           </li>
-          <li>Return <var>target</var>.</li>
+          <li>Return <var>candidate</var>.</li>
         </ol>
 
         <p class="issue">
@@ -1026,10 +1021,11 @@ await navigator.install({
 
         <p class="issue">
           <strong>Missing-icon failure classification differs.</strong>
-          Chromium can classify an explicit target with no icons as a broad
-          abort while other malformed manifest data becomes
+          Chromium can classify an explicit-manifest candidate with no icons as
+          a broad abort while other malformed manifest data becomes
           <code>DataError</code>. The provisional validation steps treat missing
-          required icon data as [=invalid install data=] for both target modes.
+          required icon data as [=invalid install data=] for both application
+          sources.
         </p>
 
         <p class="issue">
@@ -1063,7 +1059,7 @@ await navigator.install({
           permission name
           <dfn id="web-app-installation-permission" data-export="">
           <code>web-app-installation</code> permission</dfn>.
-          Its [=permission state=] is associated with the [=installing
+          Its [=permission state=] is associated with the [=initiating
           document=]'s [=origin=].
         </p>
 
@@ -1106,11 +1102,12 @@ await navigator.install({
         <ol class="algorithm">
           <li>
             If <var>request</var>'s [=web install request/entry point=] is
-            [=install element=], return true.
+            [=entry-point kind/declarative=], return true.
           </li>
           <li>
-            If <var>request</var>'s [=web install request/target mode=] is
-            [=current document=], return true.
+            If <var>request</var>'s
+            [=web install request/application source=] is [=current document=],
+            return true.
           </li>
           <li>
             Set <var>request</var>'s [=web install request/state=] to
@@ -1150,15 +1147,15 @@ await navigator.install({
         <p>
           To <dfn>confirm web installation</dfn> given a
           [=web install request=] <var>request</var> and
-          [=web install target=] <var>target</var>, the user agent MUST present
-          user-controlled UI that:
+          [=web install candidate=] <var>candidate</var>, the user agent MUST
+          present user-controlled UI that:
         </p>
 
         <ul>
-          <li>identifies the [=installing document=]'s origin;</li>
-          <li>identifies the target application's origin;</li>
+          <li>identifies the [=initiating document=]'s origin;</li>
+          <li>identifies the candidate application's origin;</li>
           <li>
-            presents sufficient trustworthy target metadata, such as name,
+            presents sufficient trustworthy application metadata, such as name,
             icon, and start URL, to distinguish the application; and
           </li>
           <li>allows the user to accept or decline the operation.</li>
@@ -1180,9 +1177,10 @@ await navigator.install({
       <h2>Performing installation</h2>
 
       <p>
-        To <dfn>perform web installation</dfn> given a
+        To <dfn>perform a Web Install action</dfn> given a
         [=web install request=] <var>request</var> and
-        [=web install target=] <var>target</var>, run the following steps:
+        [=web install candidate=] <var>candidate</var>, run the following
+        steps:
       </p>
 
       <ol class="algorithm">
@@ -1194,8 +1192,8 @@ await navigator.install({
           If the user agent determines that an
           <a data-cite="appmanifest#dfn-installed-web-application">
           installed web application</a>
-          with <var>target</var>'s [=web install target/identity=] already
-          exists:
+          with <var>candidate</var>'s [=web install candidate/identity=]
+          already exists:
           <ol>
             <li>
               Present user-controlled UI that offers a reasonable action for
@@ -1206,15 +1204,14 @@ await navigator.install({
               [=user aborted installation=].
             </li>
             <li>
-              Perform the accepted action and return
-              [=installation succeeded=].
+              Return [=installation succeeded=] and perform the accepted action.
             </li>
           </ol>
         </li>
         <li>
           Let <var>accepted</var> be the result of
           [=confirm web installation=] with <var>request</var> and
-          <var>target</var>.
+          <var>candidate</var>.
         </li>
         <li>
           If <var>accepted</var> is false, return
@@ -1229,8 +1226,8 @@ await navigator.install({
           <a data-cite="appmanifest#dfn-installed-web-application">
           installed web application</a> whose
           <a data-cite="appmanifest#dfn-manifest">application manifest</a> is
-          <var>target</var>'s
-          [=web install target/manifest=].
+          <var>candidate</var>'s
+          [=web install candidate/manifest=].
         </li>
         <li>
           If the user agent cannot complete installation, return
@@ -1295,7 +1292,7 @@ dictionary WebInstallResult {};
         Policy rejection, <code>NotFoundError</code> for some missing-document
         states, and <code>InvalidStateError</code> for other invalid contexts.
         The provisional method steps below use <code>InvalidStateError</code>
-        for every ineligible installing document. The final taxonomy should
+        for every ineligible initiating document. The final taxonomy should
         distinguish author-actionable security failures without exposing
         unnecessary lifecycle or profile information.
       </p>
@@ -1323,7 +1320,7 @@ dictionary WebInstallResult {};
             associated Document</a>.
           </li>
           <li>
-            If <var>document</var> is not an [=eligible installing document=],
+            If <var>document</var> is not an [=eligible initiating document=],
             throw an "{{InvalidStateError}}" {{DOMException}}.
           </li>
           <li>
@@ -1334,15 +1331,16 @@ dictionary WebInstallResult {};
           <li>
             Let <var>request</var> be a new [=web install request=] whose
             [=web install request/document=] is <var>document</var>,
-            [=web install request/entry point=] is [=navigator=],
-            [=web install request/target mode=] is [=current document=],
+            [=web install request/entry point=] is
+            [=entry-point kind/imperative=],
+            [=web install request/application source=] is [=current document=],
             [=web install request/manifest URL=] and
             [=web install request/manifest ID=] are null,
             [=web install request/source element=] is null, and
             [=web install request/state=] is <code>created</code>.
           </li>
           <li>
-            Return the result of [=run a navigator install request=] with
+            Return the result of [=settle a navigator install promise=] with
             <var>request</var>.
           </li>
         </ol>
@@ -1359,7 +1357,7 @@ dictionary WebInstallResult {};
             associated Document</a>.
           </li>
           <li>
-            If <var>document</var> is not an [=eligible installing document=],
+            If <var>document</var> is not an [=eligible initiating document=],
             throw an "{{InvalidStateError}}" {{DOMException}}.
           </li>
           <li>
@@ -1394,15 +1392,16 @@ dictionary WebInstallResult {};
           <li>
             Let <var>request</var> be a new [=web install request=] whose
             [=web install request/document=] is <var>document</var>,
-            [=web install request/entry point=] is [=navigator=],
-            [=web install request/target mode=] is [=explicit manifest=],
+            [=web install request/entry point=] is
+            [=entry-point kind/imperative=],
+            [=web install request/application source=] is [=explicit manifest=],
             [=web install request/manifest URL=] is <var>manifestURL</var>,
             [=web install request/manifest ID=] is <var>manifestID</var>,
             [=web install request/source element=] is null, and
             [=web install request/state=] is <code>created</code>.
           </li>
           <li>
-            Return the result of [=run a navigator install request=] with
+            Return the result of [=settle a navigator install promise=] with
             <var>request</var>.
           </li>
         </ol>
@@ -1423,7 +1422,7 @@ dictionary WebInstallResult {};
           <a data-cite="appmanifest#dfn-manifest">application manifest</a>
           that identifies the target web application. Relative values are
           resolved against the
-          [=installing document=]'s URL.
+          [=initiating document=]'s URL.
         </p>
 
         <h3><dfn><code>manifestId</code></dfn> member</h3>
@@ -1434,10 +1433,10 @@ dictionary WebInstallResult {};
       </section>
 
       <section>
-        <h3>Promise processing</h3>
+        <h3>Promise settlement</h3>
 
         <p>
-          To <dfn>run a navigator install request</dfn> given a
+          To <dfn>settle a Navigator install promise</dfn> given a
           [=web install request=] <var>request</var>, run the following steps:
         </p>
 
@@ -1466,18 +1465,6 @@ dictionary WebInstallResult {};
                     If <var>outcome</var> is [=invalid install data=],
                     [=reject=] <var>promise</var> with a
                     "{{DataError}}" {{DOMException}} and abort these substeps.
-                  </li>
-                  <li>
-                    If <var>outcome</var> is
-                    [=installation state invalid=], [=reject=]
-                    <var>promise</var> with an "{{InvalidStateError}}"
-                    {{DOMException}} and abort these substeps.
-                  </li>
-                  <li>
-                    If <var>outcome</var> is
-                    [=installation not allowed=], [=reject=]
-                    <var>promise</var> with a "{{NotAllowedError}}"
-                    {{DOMException}} and abort these substeps.
                   </li>
                   <li>
                     [=Reject=] <var>promise</var> with an
@@ -1697,7 +1684,8 @@ dictionary InstallResultEventInit : EventInit {
         </p>
 
         <p>
-          Omitting both attributes selects [=current document=] mode. Supplying
+          Omitting both attributes selects [=current document=] as the
+          [=application source=]. Supplying
           <code><a data-link-type="element-attr"
             data-link-for="install">manifestid</a></code> without
           <code><a data-link-type="element-attr"
@@ -1787,7 +1775,7 @@ dictionary InstallResultEventInit : EventInit {
             <a data-cite="dom#concept-node-document">node document</a>.
           </li>
           <li>
-            If <var>document</var> is not an [=eligible installing document=],
+            If <var>document</var> is not an [=eligible initiating document=],
             return.
           </li>
           <li>Let <var>manifestURL</var> be null.</li>
@@ -1833,9 +1821,11 @@ dictionary InstallResultEventInit : EventInit {
           <li>
             Let <var>request</var> be a new [=web install request=] whose
             [=web install request/document=] is <var>document</var>,
-            [=web install request/entry point=] is [=install element=],
-            [=web install request/target mode=] is [=current document=] if
-            <var>manifestURL</var> is null and [=explicit manifest=] otherwise,
+            [=web install request/entry point=] is
+            [=entry-point kind/declarative=],
+            [=web install request/application source=] is [=current document=]
+            if <var>manifestURL</var> is null and [=explicit manifest=]
+            otherwise,
             [=web install request/manifest URL=] is <var>manifestURL</var>,
             [=web install request/manifest ID=] is <var>manifestID</var>,
             [=web install request/source element=] is [=this=], and
@@ -2005,7 +1995,7 @@ dictionary InstallResultEventInit : EventInit {
           <var>client</var>, when it invokes
           <a data-cite="appmanifest#dfn-processing-a-manifest">
           process a manifest</a> for an
-          [=explicit manifest=] target.
+          [=explicit manifest=] [=application source=].
         </p>
         <p>
           This specification additionally requires an explicitly declared
@@ -2067,6 +2057,13 @@ dictionary InstallResultEventInit : EventInit {
       </p>
 
       <p>
+        The user agent MUST ensure that the initiating document cannot distinguish
+        whether the candidate application was newly installed or was already
+        installed, including through results, timing, user-interface behavior,
+        focus or visibility changes, or application launch behavior.
+      </p>
+
+      <p>
         In particular, installed state MUST NOT be distinguishable through:
       </p>
 
@@ -2097,9 +2094,12 @@ dictionary InstallResultEventInit : EventInit {
 
       <p>
         User agents that do not support installation in private, guest, managed,
-        or other profile types SHOULD make that failure indistinguishable from
-        other non-data failures. They SHOULD avoid reliable timing differences
-        that reveal private-browsing state.
+        or other profile types MUST process invalid installation data
+        consistently with supported profiles. After installation data has been
+        validated, they MUST make [=installation not supported=]
+        indistinguishable from [=installation operation aborted=] through
+        public results. They SHOULD avoid reliable timing differences that
+        reveal private-browsing state.
       </p>
 
       <p class="issue">
@@ -2225,7 +2225,7 @@ dictionary InstallResultEventInit : EventInit {
 
       <ul>
         <li>
-          current-document and explicit-manifest target resolution;
+          current-document and explicit-manifest application resolution;
         </li>
         <li>
           same-origin and cross-origin caller, manifest, identity, start URL,
