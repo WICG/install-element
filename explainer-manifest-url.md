@@ -284,13 +284,20 @@ interface (`isValid`, `invalidReason`, `onvalidationstatuschange`) from the
 common to all capability elements (visibility, styling, occlusion, temporal
 cooldowns) and are not install-specific.
 
-A violation of these restrictions prevents the element from being activated
-(either temporarily or permanently) and surfaces as an error in the
-Developer Tools > Issues tab.
+A violation of these restrictions prevents the element from being activated,
+either temporarily or permanently. Developers can inspect `isValid` and
+`invalidReason`, and user agents may also surface the problem in developer
+tooling.
 
 Install-data problems (a malformed `manifest` URL or `manifestId`, a manifest
 that fails to fetch or parse, etc.) are **not** surfaced here. They are reported
 *after* activation as an `"invalid_data"` `installresult` (see below).
+
+> **Note:** The mixin also exposes `initialPermissionStatus`, `permissionStatus`,
+> `onpromptaction`, and `onpromptdismiss` on `<install>`, but these members are
+> not actionable for this element. The permission status does not determine
+> whether installation can proceed, and install outcomes are reported through
+> `installresult`.
 
 ### Post-activation: `InstallResultEvent`
 
@@ -311,6 +318,12 @@ carries a `result` attribute reporting one of three values:
 > developer can correct the markup and the user can retry. (An earlier design
 > disabled the element and surfaced an `install_data_invalid` `invalidReason`;
 > that behavior was removed in favor of the `installresult` event.)
+
+For same-origin installs, user agents can supplement the coarse `"invalid_data"`
+result with actionable diagnostics in developer tooling, such as whether no
+manifest was found, the manifest could not be fetched or parsed, or required
+fields were missing or invalid. These diagnostics should not expose cross-origin
+manifest details or change the result visible to the page.
 
 ```webidl
 enum InstallResult { "success", "aborted", "invalid_data" };
