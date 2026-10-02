@@ -1429,7 +1429,9 @@ dictionary WebInstallResult {};
           An optional [=manifest ID assertion=]. Relative values are resolved
           against the [=initiating document=]'s
           <a data-cite="html/urls-and-fetching.html#document-base-url">
-          document base URL</a>. Null and omission have the same meaning.
+          document base URL</a>. For {{Navigator/install()}}, a null or omitted
+          {{InstallParams/manifestId}} member means that no manifest ID
+          assertion is supplied.
         </p>
       </section>
 
