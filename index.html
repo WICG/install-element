@@ -808,16 +808,6 @@ await navigator.install({
           </li>
         </ol>
 
-        <p class="issue">
-          <strong>Manifest ID URL resolution differs by entry point.</strong>
-          Chromium currently requires an absolute manifest ID assertion for
-          {{Navigator/install()}}, while the
-          <code><a data-link-type="element-attr"
-            data-link-for="install">manifestid</a></code> URL attribute follows
-          HTML reflection conventions and resolves relative values against the
-          document URL. Whether the imperative entry point should also accept
-          relative values remains unresolved.
-        </p>
       </section>
     </section>
 
@@ -1358,7 +1348,9 @@ dictionary WebInstallResult {};
             Let <var>manifestURL</var> be the result of the
             [=URL parser=] on
             <var>options</var>.{{InstallParams/manifest}} with
-            <var>document</var>'s [=Document/URL=] as base URL.
+            <var>document</var>'s
+            <a data-cite="html/urls-and-fetching.html#document-base-url">
+            document base URL</a> as base URL.
           </li>
           <li>
             If <var>manifestURL</var> is failure, throw a {{TypeError}}.
@@ -1370,8 +1362,10 @@ dictionary WebInstallResult {};
               <li>
                 Set <var>manifestID</var> to the result of the
                 [=URL parser=] on
-                <var>options</var>.{{InstallParams/manifestId}} with no base
-                URL.
+                <var>options</var>.{{InstallParams/manifestId}} with
+                <var>document</var>'s
+                <a data-cite="html/urls-and-fetching.html#document-base-url">
+                document base URL</a> as base URL.
               </li>
               <li>
                 If <var>manifestID</var> is failure, throw a {{TypeError}}.
@@ -1414,8 +1408,10 @@ dictionary WebInstallResult {};
 
         <h3><dfn><code>manifestId</code></dfn> member</h3>
         <p>
-          An optional absolute [=manifest ID assertion=]. Null and omission have
-          the same meaning.
+          An optional [=manifest ID assertion=]. Relative values are resolved
+          against the [=initiating document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>. Null and omission have the same meaning.
         </p>
       </section>
 
@@ -1795,7 +1791,8 @@ dictionary InstallResultEventInit : EventInit {
               <li>
                 Set <var>manifestURL</var> to the result of the [=URL parser=]
                 on the attribute's value with <var>document</var>'s
-                [=Document/URL=] as base.
+                <a data-cite="html/urls-and-fetching.html#document-base-url">
+                document base URL</a> as base.
               </li>
               <li>
                 If <var>manifestURL</var> is failure,
@@ -1808,7 +1805,8 @@ dictionary InstallResultEventInit : EventInit {
                   data-link-for="install">manifestid</a></code> attribute, set
                 <var>manifestID</var> to the result of the [=URL parser=] on
                 that attribute's value with <var>document</var>'s
-                [=Document/URL=] as base.
+                <a data-cite="html/urls-and-fetching.html#document-base-url">
+                document base URL</a> as base.
               </li>
               <li>
                 If <var>manifestID</var> is failure,
