@@ -1345,9 +1345,18 @@ dictionary WebInstallResult {};
           </li>
           <li>[=Consume user activation=] of <var>document</var>.</li>
           <li>
+            Let <var>manifestValue</var> be the result of
+            <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+            stripping leading and trailing ASCII whitespace</a> from
+            <var>options</var>.{{InstallParams/manifest}}.
+          </li>
+          <li>
+            If <var>manifestValue</var> is the empty string, throw a
+            {{TypeError}}.
+          </li>
+          <li>
             Let <var>manifestURL</var> be the result of the
-            [=URL parser=] on
-            <var>options</var>.{{InstallParams/manifest}} with
+            [=URL parser=] on <var>manifestValue</var> with
             <var>document</var>'s
             <a data-cite="html/urls-and-fetching.html#document-base-url">
             document base URL</a> as base URL.
@@ -1360,9 +1369,18 @@ dictionary WebInstallResult {};
             If <var>options</var>.{{InstallParams/manifestId}} is not null:
             <ol>
               <li>
+                Let <var>manifestIDValue</var> be the result of
+                <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                stripping leading and trailing ASCII whitespace</a> from
+                <var>options</var>.{{InstallParams/manifestId}}.
+              </li>
+              <li>
+                If <var>manifestIDValue</var> is the empty string, throw a
+                {{TypeError}}.
+              </li>
+              <li>
                 Set <var>manifestID</var> to the result of the
-                [=URL parser=] on
-                <var>options</var>.{{InstallParams/manifestId}} with
+                [=URL parser=] on <var>manifestIDValue</var> with
                 <var>document</var>'s
                 <a data-cite="html/urls-and-fetching.html#document-base-url">
                 document base URL</a> as base URL.
@@ -1402,8 +1420,9 @@ dictionary WebInstallResult {};
           The URL of the
           <a data-cite="appmanifest#dfn-manifest">application manifest</a>
           that identifies the target web application. Relative values are
-          resolved against the
-          [=initiating document=]'s URL.
+          resolved against the [=initiating document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>.
         </p>
 
         <h3><dfn><code>manifestId</code></dfn> member</h3>
@@ -1789,8 +1808,20 @@ dictionary InstallResultEventInit : EventInit {
               data-link-for="install">manifest</a></code> attribute:
             <ol>
               <li>
+                Let <var>manifestValue</var> be the result of
+                <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                stripping leading and trailing ASCII whitespace</a> from the
+                <code><a data-link-type="element-attr"
+                  data-link-for="install">manifest</a></code> attribute's value.
+              </li>
+              <li>
+                If <var>manifestValue</var> is the empty string,
+                [=queue an install result=] of <code>invalid_data</code> at
+                [=this=] and return.
+              </li>
+              <li>
                 Set <var>manifestURL</var> to the result of the [=URL parser=]
-                on the attribute's value with <var>document</var>'s
+                on <var>manifestValue</var> with <var>document</var>'s
                 <a data-cite="html/urls-and-fetching.html#document-base-url">
                 document base URL</a> as base.
               </li>
@@ -1802,16 +1833,34 @@ dictionary InstallResultEventInit : EventInit {
               <li>
                 If [=this=] has a
                 <code><a data-link-type="element-attr"
-                  data-link-for="install">manifestid</a></code> attribute, set
-                <var>manifestID</var> to the result of the [=URL parser=] on
-                that attribute's value with <var>document</var>'s
-                <a data-cite="html/urls-and-fetching.html#document-base-url">
-                document base URL</a> as base.
-              </li>
-              <li>
-                If <var>manifestID</var> is failure,
-                [=queue an install result=] of <code>invalid_data</code> at
-                [=this=] and return.
+                  data-link-for="install">manifestid</a></code> attribute:
+                <ol>
+                  <li>
+                    Let <var>manifestIDValue</var> be the result of
+                    <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                    stripping leading and trailing ASCII whitespace</a> from
+                    the <code><a data-link-type="element-attr"
+                      data-link-for="install">manifestid</a></code> attribute's
+                    value.
+                  </li>
+                  <li>
+                    If <var>manifestIDValue</var> is the empty string,
+                    [=queue an install result=] of
+                    <code>invalid_data</code> at [=this=] and return.
+                  </li>
+                  <li>
+                    Set <var>manifestID</var> to the result of the
+                    [=URL parser=] on <var>manifestIDValue</var> with
+                    <var>document</var>'s
+                    <a data-cite="html/urls-and-fetching.html#document-base-url">
+                    document base URL</a> as base.
+                  </li>
+                  <li>
+                    If <var>manifestID</var> is failure,
+                    [=queue an install result=] of
+                    <code>invalid_data</code> at [=this=] and return.
+                  </li>
+                </ol>
               </li>
             </ol>
           </li>
