@@ -809,12 +809,14 @@ await navigator.install({
         </ol>
 
         <p class="issue">
-          <strong>Relative manifest ID assertions are unresolved.</strong>
-          Proposal examples use absolute URLs and Chromium currently rejects
-          relative assertions. HTML URL-valued attributes normally resolve
-          relative values. This draft provisionally requires an absolute
-          manifest ID assertion for both entry points so their comparison
-          semantics remain aligned.
+          <strong>Manifest ID URL resolution differs by entry point.</strong>
+          Chromium currently requires an absolute manifest ID assertion for
+          {{Navigator/install()}}, while the
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> URL attribute follows
+          HTML reflection conventions and resolves relative values against the
+          document URL. Whether the imperative entry point should also accept
+          relative values remains unresolved.
         </p>
       </section>
     </section>
@@ -1508,7 +1510,6 @@ dictionary WebInstallResult {};
           <code><a data-link-type="element-attr"
             data-link-for="install">manifestid</a></code>.
         </dd>
-        <dd><code>oninstallresult</code>.</dd>
         <dd>
           Attributes defined by
           <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
@@ -1527,8 +1528,11 @@ dictionary WebInstallResult {};
 interface HTMLInstallElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions] attribute USVString? manifest;
-  [CEReactions] attribute USVString? manifestId;
+  [CEReactions, ReflectURL] attribute USVString manifest;
+  [CEReactions, ReflectURL] attribute USVString manifestId;
+};
+
+partial interface mixin GlobalEventHandlers {
   attribute EventHandler oninstallresult;
 };
 
@@ -1597,6 +1601,18 @@ dictionary InstallResultEventInit : EventInit {
         temporary dependency bridge and does not redefine their processing.
       </p>
 
+      <p>
+        If the element's [=Node/node document=] has a non-empty
+        <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+        active sandboxing flag set</a>, the element is blocked,
+        {{ActivationBlockersMixin/isValid}} is false, and
+        {{ActivationBlockersMixin/invalidReason}} is
+        <code>illegal_sandbox</code>. See
+        <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
+        <code>ActivationBlockersMixin</code></a> for the complete list of
+        blocker reasons.
+      </p>
+
       <section>
         <h3>Internal state and lifecycle</h3>
 
@@ -1652,18 +1668,24 @@ dictionary InstallResultEventInit : EventInit {
           The <dfn data-dfn-type="element-attr" data-dfn-for="install"
             data-export=""><code>manifest</code></dfn>
           content attribute gives the URL of the target application manifest.
-          The {{HTMLInstallElement/manifest}} IDL attribute reflects the
+          The {{HTMLInstallElement/manifest}} IDL attribute
+          <a data-cite="html/common-dom-interfaces.html#reflect">
+          reflects</a> the
           <code><a data-link-type="element-attr"
-            data-link-for="install">manifest</a></code> content attribute.
+            data-link-for="install">manifest</a></code> content attribute as a
+          URL.
         </p>
 
         <p>
           The <dfn data-dfn-type="element-attr" data-dfn-for="install"
             data-export=""><code>manifestid</code></dfn>
-          content attribute gives an optional absolute [=manifest ID
+          content attribute gives an optional [=manifest ID
           assertion=]. The {{HTMLInstallElement/manifestId}} IDL attribute
-          reflects the <code><a data-link-type="element-attr"
-            data-link-for="install">manifestid</a></code> content attribute.
+          <a data-cite="html/common-dom-interfaces.html#reflect">
+          reflects</a> the
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> content attribute as
+          a URL.
         </p>
 
         <p>
@@ -1675,13 +1697,6 @@ dictionary InstallResultEventInit : EventInit {
             data-link-for="install">manifest</a></code> is invalid install data.
         </p>
 
-        <p class="issue">
-          <strong>URL reflection needs alignment with HTML conventions.</strong>
-          Chromium exposes nullable URL-reflecting attributes and currently
-          requires an absolute manifest ID. The final IDL should decide whether
-          missing attributes return null or the empty string, and whether
-          relative values follow normal HTML URL reflection.
-        </p>
       </section>
 
       <section>
@@ -1792,7 +1807,8 @@ dictionary InstallResultEventInit : EventInit {
                 <code><a data-link-type="element-attr"
                   data-link-for="install">manifestid</a></code> attribute, set
                 <var>manifestID</var> to the result of the [=URL parser=] on
-                that attribute's value with no base URL.
+                that attribute's value with <var>document</var>'s
+                [=Document/URL=] as base.
               </li>
               <li>
                 If <var>manifestID</var> is failure,
@@ -1940,7 +1956,7 @@ dictionary InstallResultEventInit : EventInit {
           </thead>
           <tbody>
             <tr>
-              <td><dfn data-dfn-for="HTMLInstallElement">
+              <td><dfn data-dfn-for="GlobalEventHandlers">
                 <code>oninstallresult</code></dfn></td>
               <td><code>installresult</code></td>
             </tr>
