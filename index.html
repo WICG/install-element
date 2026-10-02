@@ -655,6 +655,24 @@ await navigator.install({
         <li>Return true.</li>
       </ol>
 
+      <p>
+        If an <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+        element's [=Node/node document=] is not the active document of a
+        [=top-level traversable=], the element is blocked,
+        {{ActivationBlockersMixin/isValid}} is false, and
+        {{ActivationBlockersMixin/invalidReason}} is
+        <code>illegal_subframe</code>. If its [=Node/node document=] has a
+        non-empty
+        <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+        active sandboxing flag set</a>, the element is blocked,
+        {{ActivationBlockersMixin/isValid}} is false, and
+        {{ActivationBlockersMixin/invalidReason}} is
+        <code>illegal_sandbox</code>. See
+        <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
+        <code>ActivationBlockersMixin</code></a> for the complete list of
+        blocker reasons.
+      </p>
+
       <p class="issue">
         <strong>Frame and sandbox scope needs multi-implementer review.</strong>
         Chromium currently requires the primary top-level document and rejects
@@ -1615,18 +1633,6 @@ dictionary InstallResultEventInit : EventInit {
         {{ActivationBlockersMixin/onvalidationstatuschange}} members behave as
         defined by [[CAPABILITY-ELEMENTS]]. The copy of their WebIDL above is a
         temporary dependency bridge and does not redefine their processing.
-      </p>
-
-      <p>
-        If the element's [=Node/node document=] has a non-empty
-        <a data-cite="html/browsers.html#active-sandboxing-flag-set">
-        active sandboxing flag set</a>, the element is blocked,
-        {{ActivationBlockersMixin/isValid}} is false, and
-        {{ActivationBlockersMixin/invalidReason}} is
-        <code>illegal_sandbox</code>. See
-        <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
-        <code>ActivationBlockersMixin</code></a> for the complete list of
-        blocker reasons.
       </p>
 
       <section>
