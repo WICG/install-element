@@ -1562,7 +1562,7 @@ HTMLInstallElement includes ActivationBlockersMixin;
 enum InstallResult {
   "success",
   "aborted",
-  "invalid_data"
+  "invalid-data"
 };
 
 [Exposed=Window]
@@ -1818,7 +1818,7 @@ dictionary InstallResultEventInit : EventInit {
               data-link-for="install">manifestid</a></code> attribute but no
             <code><a data-link-type="element-attr"
               data-link-for="install">manifest</a></code> attribute,
-            [=queue an install result=] of <code>invalid_data</code> at
+            [=queue an install result=] of <code>invalid-data</code> at
             [=this=] and return.
           </li>
           <li>
@@ -1835,7 +1835,7 @@ dictionary InstallResultEventInit : EventInit {
               </li>
               <li>
                 If <var>manifestValue</var> is the empty string,
-                [=queue an install result=] of <code>invalid_data</code> at
+                [=queue an install result=] of <code>invalid-data</code> at
                 [=this=] and return.
               </li>
               <li>
@@ -1846,7 +1846,7 @@ dictionary InstallResultEventInit : EventInit {
               </li>
               <li>
                 If <var>manifestURL</var> is failure,
-                [=queue an install result=] of <code>invalid_data</code> at
+                [=queue an install result=] of <code>invalid-data</code> at
                 [=this=] and return.
               </li>
               <li>
@@ -1865,7 +1865,7 @@ dictionary InstallResultEventInit : EventInit {
                   <li>
                     If <var>manifestIDValue</var> is the empty string,
                     [=queue an install result=] of
-                    <code>invalid_data</code> at [=this=] and return.
+                    <code>invalid-data</code> at [=this=] and return.
                   </li>
                   <li>
                     Set <var>manifestID</var> to the result of the
@@ -1877,7 +1877,7 @@ dictionary InstallResultEventInit : EventInit {
                   <li>
                     If <var>manifestID</var> is failure,
                     [=queue an install result=] of
-                    <code>invalid_data</code> at [=this=] and return.
+                    <code>invalid-data</code> at [=this=] and return.
                   </li>
                 </ol>
               </li>
@@ -1908,7 +1908,7 @@ dictionary InstallResultEventInit : EventInit {
               </li>
               <li>
                 If <var>outcome</var> is [=invalid install data=],
-                [=queue an install result=] of <code>invalid_data</code> at
+                [=queue an install result=] of <code>invalid-data</code> at
                 [=this=] and abort these substeps.
               </li>
               <li>
@@ -1965,7 +1965,7 @@ dictionary InstallResultEventInit : EventInit {
               </td>
             </tr>
             <tr>
-              <td><code>invalid_data</code></td>
+              <td><code>invalid-data</code></td>
               <td>
                 The manifest URL, manifest contents, identity assertion, or
                 required installation metadata was invalid or unavailable.
