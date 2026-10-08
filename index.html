@@ -595,30 +595,12 @@ await navigator.install({
         credentials and referrer information.
       </p>
 
-      <p class="issue">
-        <strong>Concurrency scope is provisional.</strong>
-        Chromium has document-service and WebContents-level guards, while the
-        capability-element implementation also caps registered install
-        elements. This draft defines one active operation per top-level
-        traversable because that is the visible dialog scope. Per-profile,
-        per-origin, cooldown, and quota controls remain user-agent anti-abuse
-        policy.
-      </p>
-
       <p>
         If the [=initiating document=] navigates, is destroyed, ceases to be
         fully active, or ceases to be the active document of its top-level
         traversable before processing completes, the user agent MUST cancel
         associated user interface and complete the request with
         [=installation aborted=].
-      </p>
-
-      <p class="issue">
-        <strong>Navigation and BFCache lifetime need exact HTML integration.</strong>
-        Chromium cancels on every cross-document navigation, including
-        same-origin navigation and BFCache transitions. This draft preserves
-        the active-document invariant but does not yet define whether a BFCache
-        restoration can resume an operation.
       </p>
     </section>
 
