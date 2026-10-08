@@ -585,13 +585,14 @@ await navigator.install({
         </li>
       </ol>
 
-      <p class="issue">
-        <strong>The network request currently precedes permission.</strong>
-        The algorithm matches Chromium by fetching and validating an explicit
-        manifest before checking installation permission and profile support.
-        This helps coarsen private-profile failures behind data errors, but it
-        lets a target origin observe a request before the installing user grants
-        permission. The final ordering requires privacy and implementer review.
+      <p>
+        For explicit-manifest requests, manifest retrieval and validation
+        precede installation-permission and unsupported-profile handling. This
+        ensures that invalid manifest data produces the same
+        [=invalid install data=] outcome regardless of permission or profile
+        state. Consequently, the target origin may observe a manifest request
+        before installation permission is granted; the request omits
+        credentials and referrer information.
       </p>
 
       <p class="issue">
