@@ -641,9 +641,8 @@ await navigator.install({
           [=top-level traversable=], return false.
         </li>
         <li>
-          If <var>document</var> is a
-          <a href="https://wicg.github.io/fenced-frame/#fenced-frame">
-          fenced frame</a> document, return false.
+          If <var>document</var> is a fenced frame document, as defined in
+          [[FENCED-FRAME]], return false.
         </li>
         <li>
           If <var>document</var>'s
@@ -809,14 +808,6 @@ await navigator.install({
           </li>
         </ol>
 
-        <p class="issue">
-          <strong>Relative manifest ID assertions are unresolved.</strong>
-          Proposal examples use absolute URLs and Chromium currently rejects
-          relative assertions. HTML URL-valued attributes normally resolve
-          relative values. This draft provisionally requires an absolute
-          manifest ID assertion for both entry points so their comparison
-          semantics remain aligned.
-        </p>
       </section>
     </section>
 
@@ -1354,10 +1345,21 @@ dictionary WebInstallResult {};
           </li>
           <li>[=Consume user activation=] of <var>document</var>.</li>
           <li>
+            Let <var>manifestValue</var> be the result of
+            <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+            stripping leading and trailing ASCII whitespace</a> from
+            <var>options</var>.{{InstallParams/manifest}}.
+          </li>
+          <li>
+            If <var>manifestValue</var> is the empty string, throw a
+            {{TypeError}}.
+          </li>
+          <li>
             Let <var>manifestURL</var> be the result of the
-            [=URL parser=] on
-            <var>options</var>.{{InstallParams/manifest}} with
-            <var>document</var>'s [=Document/URL=] as base URL.
+            [=URL parser=] on <var>manifestValue</var> with
+            <var>document</var>'s
+            <a data-cite="html/urls-and-fetching.html#document-base-url">
+            document base URL</a> as base URL.
           </li>
           <li>
             If <var>manifestURL</var> is failure, throw a {{TypeError}}.
@@ -1367,10 +1369,21 @@ dictionary WebInstallResult {};
             If <var>options</var>.{{InstallParams/manifestId}} is not null:
             <ol>
               <li>
+                Let <var>manifestIDValue</var> be the result of
+                <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                stripping leading and trailing ASCII whitespace</a> from
+                <var>options</var>.{{InstallParams/manifestId}}.
+              </li>
+              <li>
+                If <var>manifestIDValue</var> is the empty string, throw a
+                {{TypeError}}.
+              </li>
+              <li>
                 Set <var>manifestID</var> to the result of the
-                [=URL parser=] on
-                <var>options</var>.{{InstallParams/manifestId}} with no base
-                URL.
+                [=URL parser=] on <var>manifestIDValue</var> with
+                <var>document</var>'s
+                <a data-cite="html/urls-and-fetching.html#document-base-url">
+                document base URL</a> as base URL.
               </li>
               <li>
                 If <var>manifestID</var> is failure, throw a {{TypeError}}.
@@ -1407,14 +1420,19 @@ dictionary WebInstallResult {};
           The URL of the
           <a data-cite="appmanifest#dfn-manifest">application manifest</a>
           that identifies the target web application. Relative values are
-          resolved against the
-          [=initiating document=]'s URL.
+          resolved against the [=initiating document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>.
         </p>
 
         <h3><dfn><code>manifestId</code></dfn> member</h3>
         <p>
-          An optional absolute [=manifest ID assertion=]. Null and omission have
-          the same meaning.
+          An optional [=manifest ID assertion=]. Relative values are resolved
+          against the [=initiating document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>. For {{Navigator/install()}}, a null or omitted
+          {{InstallParams/manifestId}} member means that no manifest ID
+          assertion is supplied.
         </p>
       </section>
 
@@ -1509,7 +1527,6 @@ dictionary WebInstallResult {};
           <code><a data-link-type="element-attr"
             data-link-for="install">manifestid</a></code>.
         </dd>
-        <dd><code>oninstallresult</code>.</dd>
         <dd>
           Attributes defined by
           <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
@@ -1528,8 +1545,11 @@ dictionary WebInstallResult {};
 interface HTMLInstallElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions] attribute USVString? manifest;
-  [CEReactions] attribute USVString? manifestId;
+  [CEReactions, ReflectURL] attribute USVString manifest;
+  [CEReactions, ReflectURL] attribute USVString manifestId;
+};
+
+partial interface mixin GlobalEventHandlers {
   attribute EventHandler oninstallresult;
 };
 
@@ -1543,7 +1563,7 @@ HTMLInstallElement includes ActivationBlockersMixin;
 enum InstallResult {
   "success",
   "aborted",
-  "invalid_data"
+  "invalid-data"
 };
 
 [Exposed=Window]
@@ -1597,6 +1617,63 @@ dictionary InstallResultEventInit : EventInit {
         defined by [[CAPABILITY-ELEMENTS]]. The copy of their WebIDL above is a
         temporary dependency bridge and does not redefine their processing.
       </p>
+
+      <section>
+        <h3>Context blocker reasons</h3>
+
+        <p>
+          To determine an
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+          element's <dfn>context blocker reason</dfn>, run the following steps:
+        </p>
+
+        <ol class="algorithm">
+          <li>
+            Let <var>document</var> be the element's [=Node/node document=].
+          </li>
+          <li>
+            If <var>document</var> is a fenced frame document, as defined in
+            [[FENCED-FRAME]], return <code>illegal_subframe</code>.
+          </li>
+          <li>
+            If the <code>web-app-installation</code>
+            [=policy-controlled feature=] is disabled in
+            <var>document</var>, return <code>illegal_subframe</code>.
+          </li>
+          <li>
+            If <var>document</var>'s
+            <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+            active sandboxing flag set</a> is not empty, return
+            <code>illegal_sandbox</code>.
+          </li>
+          <li>
+            If <var>document</var> is not the
+            <a data-cite="html/document-sequences.html#active-document">
+            active document</a> of a [=top-level traversable=], return
+            <code>illegal_subframe</code>.
+          </li>
+          <li>Return the empty string.</li>
+        </ol>
+
+        <p>
+          If the element's [=context blocker reason=] is not the empty string,
+          the element is blocked, {{ActivationBlockersMixin/isValid}} is false,
+          and {{ActivationBlockersMixin/invalidReason}} is that reason.
+        </p>
+
+        <p class="issue">
+          <strong>The shared blocker reason set does not yet include
+          <code>illegal_sandbox</code>.</strong>
+          [[CAPABILITY-ELEMENTS]] defines <code>illegal_subframe</code>, but
+          does not include <code>illegal_sandbox</code> in
+          <code>ActivationBlockersMixinBlockerReason</code> or its blocker
+          reason table. This specification provisionally defines
+          <code>illegal_sandbox</code> and the context ordering above for
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code>. This
+          does not otherwise redefine the mixin's blocker processing or the
+          ordering among blocker reasons defined by [[CAPABILITY-ELEMENTS]].
+        </p>
+      </section>
 
       <section>
         <h3>Internal state and lifecycle</h3>
@@ -1653,18 +1730,28 @@ dictionary InstallResultEventInit : EventInit {
           The <dfn data-dfn-type="element-attr" data-dfn-for="install"
             data-export=""><code>manifest</code></dfn>
           content attribute gives the URL of the target application manifest.
-          The {{HTMLInstallElement/manifest}} IDL attribute reflects the
+          The {{HTMLInstallElement/manifest}} IDL attribute
+          <a data-cite="html/common-dom-interfaces.html#reflect">
+          reflects</a> the
           <code><a data-link-type="element-attr"
-            data-link-for="install">manifest</a></code> content attribute.
+            data-link-for="install">manifest</a></code> content attribute as a
+          URL.
         </p>
 
         <p>
           The <dfn data-dfn-type="element-attr" data-dfn-for="install"
             data-export=""><code>manifestid</code></dfn>
-          content attribute gives an optional absolute [=manifest ID
-          assertion=]. The {{HTMLInstallElement/manifestId}} IDL attribute
-          reflects the <code><a data-link-type="element-attr"
-            data-link-for="install">manifestid</a></code> content attribute.
+          content attribute gives an optional [=manifest ID
+          assertion=]. Relative values are resolved against the element's
+          [=Node/node document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>. The {{HTMLInstallElement/manifestId}} IDL
+          attribute
+          <a data-cite="html/common-dom-interfaces.html#reflect">
+          reflects</a> the
+          <code><a data-link-type="element-attr"
+            data-link-for="install">manifestid</a></code> content attribute as
+          a URL.
         </p>
 
         <p>
@@ -1676,13 +1763,6 @@ dictionary InstallResultEventInit : EventInit {
             data-link-for="install">manifest</a></code> is invalid install data.
         </p>
 
-        <p class="issue">
-          <strong>URL reflection needs alignment with HTML conventions.</strong>
-          Chromium exposes nullable URL-reflecting attributes and currently
-          requires an absolute manifest ID. The final IDL should decide whether
-          missing attributes return null or the empty string, and whether
-          relative values follow normal HTML URL reflection.
-        </p>
       </section>
 
       <section>
@@ -1770,7 +1850,7 @@ dictionary InstallResultEventInit : EventInit {
               data-link-for="install">manifestid</a></code> attribute but no
             <code><a data-link-type="element-attr"
               data-link-for="install">manifest</a></code> attribute,
-            [=queue an install result=] of <code>invalid_data</code> at
+            [=queue an install result=] of <code>invalid-data</code> at
             [=this=] and return.
           </li>
           <li>
@@ -1779,26 +1859,61 @@ dictionary InstallResultEventInit : EventInit {
               data-link-for="install">manifest</a></code> attribute:
             <ol>
               <li>
-                Set <var>manifestURL</var> to the result of the [=URL parser=]
-                on the attribute's value with <var>document</var>'s
-                [=Document/URL=] as base.
+                Let <var>manifestValue</var> be the result of
+                <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                stripping leading and trailing ASCII whitespace</a> from the
+                <code><a data-link-type="element-attr"
+                  data-link-for="install">manifest</a></code> attribute's value.
+              </li>
+              <li>
+                If <var>manifestValue</var> is the empty string,
+                [=queue an install result=] of <code>invalid-data</code> at
+                [=this=] and return.
+              </li>
+              <li>
+                Set <var>manifestURL</var> to the result of running the
+                <a data-cite=
+                  "html/urls-and-fetching.html#encoding-parsing-a-url">
+                encoding-parse a URL</a> algorithm given
+                <var>manifestValue</var>, relative to <var>document</var>.
               </li>
               <li>
                 If <var>manifestURL</var> is failure,
-                [=queue an install result=] of <code>invalid_data</code> at
+                [=queue an install result=] of <code>invalid-data</code> at
                 [=this=] and return.
               </li>
               <li>
                 If [=this=] has a
                 <code><a data-link-type="element-attr"
-                  data-link-for="install">manifestid</a></code> attribute, set
-                <var>manifestID</var> to the result of the [=URL parser=] on
-                that attribute's value with no base URL.
-              </li>
-              <li>
-                If <var>manifestID</var> is failure,
-                [=queue an install result=] of <code>invalid_data</code> at
-                [=this=] and return.
+                  data-link-for="install">manifestid</a></code> attribute:
+                <ol>
+                  <li>
+                    Let <var>manifestIDValue</var> be the result of
+                    <a data-cite="infra#strip-leading-and-trailing-ascii-whitespace">
+                    stripping leading and trailing ASCII whitespace</a> from
+                    the <code><a data-link-type="element-attr"
+                      data-link-for="install">manifestid</a></code> attribute's
+                    value.
+                  </li>
+                  <li>
+                    If <var>manifestIDValue</var> is the empty string,
+                    [=queue an install result=] of
+                    <code>invalid-data</code> at [=this=] and return.
+                  </li>
+                  <li>
+                    Set <var>manifestID</var> to the result of running the
+                    <a data-cite=
+                      "html/urls-and-fetching.html#encoding-parsing-a-url">
+                    encoding-parse a URL</a> algorithm given
+                    <var>manifestIDValue</var>, relative to
+                    <var>document</var>.
+                  </li>
+                  <li>
+                    If <var>manifestID</var> is failure,
+                    [=queue an install result=] of
+                    <code>invalid-data</code> at [=this=] and return.
+                  </li>
+                </ol>
               </li>
             </ol>
           </li>
@@ -1827,7 +1942,7 @@ dictionary InstallResultEventInit : EventInit {
               </li>
               <li>
                 If <var>outcome</var> is [=invalid install data=],
-                [=queue an install result=] of <code>invalid_data</code> at
+                [=queue an install result=] of <code>invalid-data</code> at
                 [=this=] and abort these substeps.
               </li>
               <li>
@@ -1884,7 +1999,7 @@ dictionary InstallResultEventInit : EventInit {
               </td>
             </tr>
             <tr>
-              <td><code>invalid_data</code></td>
+              <td><code>invalid-data</code></td>
               <td>
                 The manifest URL, manifest contents, identity assertion, or
                 required installation metadata was invalid or unavailable.
@@ -1941,7 +2056,7 @@ dictionary InstallResultEventInit : EventInit {
           </thead>
           <tbody>
             <tr>
-              <td><dfn data-dfn-for="HTMLInstallElement">
+              <td><dfn data-dfn-for="GlobalEventHandlers">
                 <code>oninstallresult</code></dfn></td>
               <td><code>installresult</code></td>
             </tr>
