@@ -1621,29 +1621,56 @@ dictionary InstallResultEventInit : EventInit {
         <h3>Context blocker reasons</h3>
 
         <p>
-          If the element's [=Node/node document=] is not the active document of
-          a [=top-level traversable=], is a fenced frame document, or has the
-          <code>web-app-installation</code> [=policy-controlled feature=]
-          disabled, the element is blocked,
-          {{ActivationBlockersMixin/isValid}} is false, and
-          {{ActivationBlockersMixin/invalidReason}} is
-          <code>illegal_subframe</code>.
+          To determine an
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code>
+          element's <dfn>context blocker reason</dfn>, run the following steps:
         </p>
 
-        <p>
-          If the element's [=Node/node document=] has a non-empty
-          <a data-cite="html/browsers.html#active-sandboxing-flag-set">
-          active sandboxing flag set</a>, the element is blocked,
-          {{ActivationBlockersMixin/isValid}} is false, and
-          {{ActivationBlockersMixin/invalidReason}} is
-          <code>illegal_sandbox</code>.
-        </p>
+        <ol class="algorithm">
+          <li>
+            Let <var>document</var> be the element's [=Node/node document=].
+          </li>
+          <li>
+            If <var>document</var> is a fenced frame document, as defined in
+            [[FENCED-FRAME]], return <code>illegal_subframe</code>.
+          </li>
+          <li>
+            If the <code>web-app-installation</code>
+            [=policy-controlled feature=] is disabled in
+            <var>document</var>, return <code>illegal_subframe</code>.
+          </li>
+          <li>
+            If <var>document</var>'s
+            <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+            active sandboxing flag set</a> is not empty, return
+            <code>illegal_sandbox</code>.
+          </li>
+          <li>
+            If <var>document</var> is not the
+            <a data-cite="html/document-sequences.html#active-document">
+            active document</a> of a [=top-level traversable=], return
+            <code>illegal_subframe</code>.
+          </li>
+          <li>Return the empty string.</li>
+        </ol>
 
         <p>
-          These blocker reasons and their processing are defined by
-          <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
-          <code>ActivationBlockersMixin</code></a>. See
-          [[CAPABILITY-ELEMENTS]] for the complete list.
+          If the element's [=context blocker reason=] is not the empty string,
+          the element is blocked, {{ActivationBlockersMixin/isValid}} is false,
+          and {{ActivationBlockersMixin/invalidReason}} is that reason.
+        </p>
+
+        <p class="issue">
+          <strong>The shared blocker reason set does not yet include
+          <code>illegal_sandbox</code>.</strong>
+          [[CAPABILITY-ELEMENTS]] defines <code>illegal_subframe</code>, but
+          does not include <code>illegal_sandbox</code> in
+          <code>ActivationBlockersMixinBlockerReason</code> or its blocker
+          reason table. This specification provisionally defines
+          <code>illegal_sandbox</code> and the context ordering above for
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code>. This
+          does not otherwise redefine the mixin's blocker processing or the
+          ordering among blocker reasons defined by [[CAPABILITY-ELEMENTS]].
         </p>
       </section>
 
@@ -1714,7 +1741,11 @@ dictionary InstallResultEventInit : EventInit {
           The <dfn data-dfn-type="element-attr" data-dfn-for="install"
             data-export=""><code>manifestid</code></dfn>
           content attribute gives an optional [=manifest ID
-          assertion=]. The {{HTMLInstallElement/manifestId}} IDL attribute
+          assertion=]. Relative values are resolved against the element's
+          [=Node/node document=]'s
+          <a data-cite="html/urls-and-fetching.html#document-base-url">
+          document base URL</a>. The {{HTMLInstallElement/manifestId}} IDL
+          attribute
           <a data-cite="html/common-dom-interfaces.html#reflect">
           reflects</a> the
           <code><a data-link-type="element-attr"
@@ -1839,10 +1870,11 @@ dictionary InstallResultEventInit : EventInit {
                 [=this=] and return.
               </li>
               <li>
-                Set <var>manifestURL</var> to the result of the [=URL parser=]
-                on <var>manifestValue</var> with <var>document</var>'s
-                <a data-cite="html/urls-and-fetching.html#document-base-url">
-                document base URL</a> as base.
+                Set <var>manifestURL</var> to the result of running the
+                <a data-cite=
+                  "html/urls-and-fetching.html#encoding-parsing-a-url">
+                encoding-parse a URL</a> algorithm given
+                <var>manifestValue</var>, relative to <var>document</var>.
               </li>
               <li>
                 If <var>manifestURL</var> is failure,
@@ -1868,11 +1900,12 @@ dictionary InstallResultEventInit : EventInit {
                     <code>invalid-data</code> at [=this=] and return.
                   </li>
                   <li>
-                    Set <var>manifestID</var> to the result of the
-                    [=URL parser=] on <var>manifestIDValue</var> with
-                    <var>document</var>'s
-                    <a data-cite="html/urls-and-fetching.html#document-base-url">
-                    document base URL</a> as base.
+                    Set <var>manifestID</var> to the result of running the
+                    <a data-cite=
+                      "html/urls-and-fetching.html#encoding-parsing-a-url">
+                    encoding-parse a URL</a> algorithm given
+                    <var>manifestIDValue</var>, relative to
+                    <var>document</var>.
                   </li>
                   <li>
                     If <var>manifestID</var> is failure,
