@@ -1870,11 +1870,10 @@ dictionary InstallResultEventInit : EventInit {
                 [=this=] and return.
               </li>
               <li>
-                Set <var>manifestURL</var> to the result of running the
-                <a data-cite=
-                  "html/urls-and-fetching.html#encoding-parsing-a-url">
-                encoding-parse a URL</a> algorithm given
-                <var>manifestValue</var>, relative to <var>document</var>.
+                Set <var>manifestURL</var> to the result of the [=URL parser=]
+                on <var>manifestValue</var> with <var>document</var>'s
+                <a data-cite="html/urls-and-fetching.html#document-base-url">
+                document base URL</a> as base.
               </li>
               <li>
                 If <var>manifestURL</var> is failure,
@@ -1900,12 +1899,11 @@ dictionary InstallResultEventInit : EventInit {
                     <code>invalid-data</code> at [=this=] and return.
                   </li>
                   <li>
-                    Set <var>manifestID</var> to the result of running the
-                    <a data-cite=
-                      "html/urls-and-fetching.html#encoding-parsing-a-url">
-                    encoding-parse a URL</a> algorithm given
-                    <var>manifestIDValue</var>, relative to
-                    <var>document</var>.
+                    Set <var>manifestID</var> to the result of the
+                    [=URL parser=] on <var>manifestIDValue</var> with
+                    <var>document</var>'s
+                    <a data-cite="html/urls-and-fetching.html#document-base-url">
+                    document base URL</a> as base.
                   </li>
                   <li>
                     If <var>manifestID</var> is failure,
