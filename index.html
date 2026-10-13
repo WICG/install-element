@@ -647,14 +647,6 @@ await navigator.install({
         behavior until a safe delegation model is designed.
       </p>
 
-      <p class="issue">
-        <strong>Secure-context exposure is inconsistent.</strong>
-        Chromium's IDL lacks <code>[SecureContext]</code>, but browser bindings
-        and manifest URL checks effectively restrict use to trustworthy HTTP(S)
-        contexts. This draft checks trustworthy contexts in processing rather
-        than changing interface exposure. The final API should decide whether
-        secure-context gating belongs in WebIDL.
-      </p>
     </section>
 
     <section id="candidate-resolution">
@@ -1238,8 +1230,8 @@ await navigator.install({
 
       <pre class="idl">
 partial interface Navigator {
-  Promise&lt;WebInstallResult&gt; install();
-  Promise&lt;WebInstallResult&gt; install(InstallParams options);
+  [SecureContext] Promise&lt;WebInstallResult&gt; install();
+  [SecureContext] Promise&lt;WebInstallResult&gt; install(InstallParams options);
 };
 
 dictionary InstallParams {
@@ -1249,14 +1241,6 @@ dictionary InstallParams {
 
 dictionary WebInstallResult {};
       </pre>
-
-      <p class="issue">
-        <strong>Consider <code>[SecureContext]</code>.</strong>
-        Chromium does not annotate these interfaces with
-        <code>[SecureContext]</code>, although practical use is restricted to
-        trustworthy contexts and targets. The final WebIDL exposure should be
-        decided explicitly.
-      </p>
 
       <p class="issue">
         <strong>Calling-context exception names are not aligned.</strong>
