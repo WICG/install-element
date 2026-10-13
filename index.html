@@ -640,8 +640,11 @@ await navigator.install({
           [=top-level traversable=], return false.
         </li>
         <li>
-          If <var>document</var> is a fenced frame document, as defined in
-          [[FENCED-FRAME]], return false.
+          If the [=navigable/traversable navigable=] of
+          <var>document</var>'s [=node navigable=] is a
+          <a data-cite=
+            "!FENCED-FRAME#fenced-navigable-container-fenced-navigable">
+          fenced navigable</a>, return false.
         </li>
         <li>
           If <var>document</var>'s
