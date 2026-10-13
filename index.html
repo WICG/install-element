@@ -1634,8 +1634,11 @@ dictionary InstallResultEventInit : EventInit {
             Let <var>document</var> be the element's [=Node/node document=].
           </li>
           <li>
-            If <var>document</var> is a fenced frame document, as defined in
-            [[FENCED-FRAME]], return <code>illegal_subframe</code>.
+            If the [=navigable/traversable navigable=] of
+            <var>document</var>'s [=node navigable=] is a
+            <a data-cite=
+              "!FENCED-FRAME#fenced-navigable-container-fenced-navigable">
+            fenced navigable</a>, return <code>illegal_subframe</code>.
           </li>
           <li>
             If the <code>web-app-installation</code>
