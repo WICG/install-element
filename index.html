@@ -284,7 +284,7 @@ await navigator.install({
         Geolocation Element draft</a>.
         PEPC's Permission Elements draft separately defines <code>InPagePermissionMixin</code>
         which exposes the same activation-blocker-facing members. Reconciling these
-        blockers should be done at the PEPC level.
+        overlapping abstractions should be done at the PEPC level.
       </p>
 
       <p>
@@ -1124,8 +1124,9 @@ await navigator.install({
         <a data-cite="appmanifest#dfn-id">manifest IDs</a> are distinct
         applications, even when their
         <a data-cite="appmanifest#dfn-navigation-scope">navigation scopes</a>
-        overlap. Scope overlap alone SHOULD NOT cause a candidate to be treated
-        as already installed or its installation request to be rejected.
+        overlap. For purposes of this specification's already-installed check,
+        scope overlap alone does not make a candidate the same application as
+        an installed application.
       </p>
 
       <p>
@@ -1612,8 +1613,8 @@ dictionary InstallResultEventInit : EventInit {
 
         <p>
           If the element's [=context blocker reason=] is not the empty string,
-          the element is blocked, {{ActivationBlockersMixin/isValid}} is false,
-          and {{ActivationBlockersMixin/invalidReason}} is that reason.
+          the element is blocked, {{HTMLInstallElement/isValid}} is false, and
+          {{HTMLInstallElement/invalidReason}} is that reason.
         </p>
 
         <p class="issue">
