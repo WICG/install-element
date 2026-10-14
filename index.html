@@ -276,18 +276,15 @@ await navigator.install({
       </p>
 
       <p class="issue">
-        <strong>Capability Elements ownership is unsettled.</strong>
-        The reusable activation-blocker algorithms currently live inside the
-        Geolocation Element draft, while Chromium's
-        <code>&lt;<a data-link-type="element">install</a>&gt;</code>
-        implementation
-        uses an older <code>InPagePermissionMixin</code> that also exposes
-        permission-state and prompt event members that
-        <code>&lt;<a data-link-type="element">install</a>&gt;</code> does not
-        use. This draft references only the narrower
-        <code>ActivationBlockersMixin</code>. Before advancement, that mixin
-        should have a maintained, independently referenceable specification
-        home, or the required behavior must be defined here.
+        <strong>Activation-blocker processing ownership is unsettled.</strong>
+        This specification defines the {{HTMLInstallElement}} members directly
+        but reuses the internal state and processing currently defined for
+        <code>ActivationBlockersMixin</code> in the
+        <a href="https://wicg.github.io/PEPC/geolocation-element.html">
+        Geolocation Element draft</a>.
+        PEPC's Permission Elements draft separately defines <code>InPagePermissionMixin</code>
+        which exposes the same activation-blocker-facing members. Reconciling these
+        blockers should be done at the PEPC level.
       </p>
 
       <p>
@@ -984,22 +981,14 @@ await navigator.install({
         </p>
 
         <p class="issue">
-          <strong>Missing-icon failure classification differs.</strong>
-          Chromium can classify an explicit-manifest candidate with no icons as
-          a broad abort while other malformed manifest data becomes
-          <code>DataError</code>. The provisional validation steps treat missing
-          required icon data as [=invalid install data=] for both application
-          sources.
-        </p>
-
-        <p class="issue">
-          <strong>Related applications and overlapping scopes are unresolved.</strong>
-          The draft does not hand installation to
-          <code>related_applications</code>, nor does it reject a target because
-          another installed app controls overlapping scope. Both behaviors
-          affect application identity and should be decided with Web App
-          Manifest rather than inherited from one product's installability
-          heuristics.
+          <strong>Related-application support is deferred.</strong>
+          This specification currently targets the requested web application
+          and does not define an installation handoff based on
+          <code>related_applications</code>. Such handling is a desired future
+          enhancement, outside the initial shipping scope. Its design should
+          be coordinated with Web App Manifest and assess compatibility for
+          existing manifests, particularly if it would replace or prevent the
+          requested web-app installation.
         </p>
 
         <p>
@@ -1135,6 +1124,15 @@ await navigator.install({
 
     <section id="perform-install">
       <h2>Performing installation</h2>
+
+      <p>
+        Applications with different processed
+        <a data-cite="appmanifest#dfn-id">manifest IDs</a> are distinct
+        applications, even when their
+        <a data-cite="appmanifest#dfn-navigation-scope">navigation scopes</a>
+        overlap. Scope overlap alone SHOULD NOT cause a candidate to be treated
+        as already installed or its installation request to be rejected.
+      </p>
 
       <p>
         To <dfn>perform a Web Install action</dfn> given a
@@ -1467,11 +1465,9 @@ dictionary WebInstallResult {};
             data-link-for="install">manifestid</a></code>.
         </dd>
         <dd><code>oninstallresult</code>.</dd>
-        <dd>
-          Attributes defined by
-          <a data-cite="!CAPABILITY-ELEMENTS#mixin-blockers">
-          <code>ActivationBlockersMixin</code></a>.
-        </dd>
+        <dd><code>isValid</code>.</dd>
+        <dd><code>invalidReason</code>.</dd>
+        <dd><code>onvalidationstatuschange</code>.</dd>
         <dt>Accessibility considerations:</dt>
         <dd>For authors: none.</dd>
         <dd>For implementers: see [[HTML-AAM]] and
@@ -1488,14 +1484,11 @@ interface HTMLInstallElement : HTMLElement {
   [CEReactions] attribute USVString? manifest;
   [CEReactions] attribute USVString? manifestId;
   attribute EventHandler oninstallresult;
-};
 
-interface mixin ActivationBlockersMixin {
   readonly attribute boolean isValid;
   readonly attribute DOMString invalidReason;
   attribute EventHandler onvalidationstatuschange;
 };
-HTMLInstallElement includes ActivationBlockersMixin;
 
 enum InstallResult {
   "success",
@@ -1548,11 +1541,11 @@ dictionary InstallResultEventInit : EventInit {
       </p>
 
       <p>
-        The {{ActivationBlockersMixin/isValid}},
-        {{ActivationBlockersMixin/invalidReason}}, and
-        {{ActivationBlockersMixin/onvalidationstatuschange}} members behave as
-        defined by [[CAPABILITY-ELEMENTS]]. The copy of their WebIDL above is a
-        temporary dependency bridge and does not redefine their processing.
+        The {{HTMLInstallElement/isValid}},
+        {{HTMLInstallElement/invalidReason}}, and
+        {{HTMLInstallElement/onvalidationstatuschange}} members use the
+        activation-blocker processing defined by [[CAPABILITY-ELEMENTS]]. Their
+        direct WebIDL declarations above do not redefine that processing.
       </p>
 
       <section>
@@ -1709,7 +1702,7 @@ dictionary InstallResultEventInit : EventInit {
             If <var>event</var>.{{Event/isTrusted}} is false, return.
           </li>
           <li>
-            If [=this=].{{ActivationBlockersMixin/isValid}} is false, return.
+            If [=this=].{{HTMLInstallElement/isValid}} is false, return.
           </li>
           <li>
             Let <var>document</var> be [=this=]'s
@@ -1957,11 +1950,11 @@ dictionary InstallResultEventInit : EventInit {
       <section>
         <h3>Capability Elements</h3>
         <p>
-          {{HTMLInstallElement}} includes
-          <code>ActivationBlockersMixin</code> and invokes that mixin's
-          initialization, insertion, removal, and activation-validation
-          processing. It does not observe or expose a capability permission
-          state through that mixin.
+          {{HTMLInstallElement}} reuses the internal state and initialization,
+          insertion, removal, and activation-validation processing defined for
+          <code>ActivationBlockersMixin</code>. It does not include the mixin's
+          WebIDL or observe or expose a capability permission state through
+          that processing.
         </p>
       </section>
 
