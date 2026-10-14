@@ -1504,14 +1504,14 @@ interface HTMLInstallElement : HTMLElement {
 
   [CEReactions, ReflectURL] attribute USVString manifest;
   [CEReactions, ReflectURL] attribute USVString manifestId;
-};
-
-partial interface mixin GlobalEventHandlers {
-  attribute EventHandler oninstallresult;
 
   readonly attribute boolean isValid;
   readonly attribute DOMString invalidReason;
   attribute EventHandler onvalidationstatuschange;
+};
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler oninstallresult;
 };
 
 enum InstallResult {
