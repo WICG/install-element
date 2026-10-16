@@ -1018,24 +1018,6 @@ await navigator.install({
           <code>self</code>.
         </p>
 
-        <p class="issue">
-          <strong>Permission scope and applicability conflict across evidence.</strong>
-          Some proposal text describes the permission as cross-origin-only,
-          other proposal text requires it for every explicitly targeted
-          manifest, and Chromium currently checks it for every
-          {{Navigator/install()}} explicit-manifest request. The algorithm below
-          provisionally follows Chromium: the permission is required for the
-          imperative explicit-manifest form, regardless of whether caller and
-          target are same-origin.
-        </p>
-
-        <p class="issue">
-          <strong>The default permission state differs between products.</strong>
-          Chromium can prompt for this permission, while current Edge product
-          policy can treat the initial state as allowed. The web specification
-          should define the permission's semantics and leave enterprise or product
-          grants to user-agent policy without changing the public result taxonomy.
-        </p>
       </section>
 
       <section>
@@ -1072,16 +1054,6 @@ await navigator.install({
           <li>Return true.</li>
         </ol>
 
-        <p class="issue">
-          <strong>Trusted element activation currently bypasses stored denial.</strong>
-          Chromium treats a validated click on
-          <code>&lt;<a data-link-type="element">install</a>&gt;</code> as
-          sufficient intent
-          and skips the persistent permission check, even if the stored state is
-          denied. This draft provisionally matches that behavior. The final
-          design must decide whether the element bypasses only a prompt, or also
-          an explicit prior denial.
-        </p>
       </section>
 
       <section>
@@ -1118,16 +1090,6 @@ await navigator.install({
 
     <section id="perform-install">
       <h2>Performing installation</h2>
-
-      <p>
-        Applications with different processed
-        <a data-cite="appmanifest#dfn-id">manifest IDs</a> are distinct
-        applications, even when their
-        <a data-cite="appmanifest#dfn-navigation-scope">navigation scopes</a>
-        overlap. For purposes of this specification's already-installed check,
-        scope overlap alone does not make a candidate the same application as
-        an installed application.
-      </p>
 
       <p>
         To <dfn>perform a Web Install action</dfn> given a
@@ -1190,23 +1152,6 @@ await navigator.install({
         the target application's origin, permissions, or storage partition.
       </p>
 
-      <p class="issue">
-        <strong>The success point is not settled.</strong>
-        Chromium reports success after installation, or after the user accepts
-        a launch action for an already-installed app. A race can cause success
-        even if the installed app disappears before a queued launch. The final
-        specification must decide whether success means completed installation,
-        accepted user intent, or a broader "reasonable action" by the user
-        agent.
-      </p>
-
-      <p class="issue">
-        <strong>Display mode and OS integration are user-agent policy.</strong>
-        Chromium currently forces a standalone display mode, requests OS
-        integration, and launches new installations. Those choices are not
-        stated as interoperable requirements in the proposal and are not
-        required by this draft.
-      </p>
     </section>
 
     <section id="navigator-api">
@@ -1226,26 +1171,6 @@ dictionary InstallParams {
 dictionary WebInstallResult {};
       </pre>
 
-      <p class="issue">
-        <strong>Calling-context exception names are not aligned.</strong>
-        Chromium throws <code>SecurityError</code> for sandbox or Permissions
-        Policy rejection, <code>NotFoundError</code> for some missing-document
-        states, and <code>InvalidStateError</code> for other invalid contexts.
-        The provisional method steps below use <code>InvalidStateError</code>
-        for every ineligible initiating document. The final taxonomy should
-        distinguish author-actionable security failures without exposing
-        unnecessary lifecycle or profile information.
-      </p>
-
-      <p class="issue">
-        <strong>The result dictionary is intentionally empty.</strong>
-        Earlier IDL contains a <code>manifestId</code> member, while the current
-        manifest-target implementation deliberately withholds it. This draft
-        defines an empty dictionary for future compatibility. A
-        <code>Promise&lt;undefined&gt;</code> return type remains a simpler
-        alternative.
-      </p>
-
       <section data-dfn-for="Navigator">
         <h3><dfn><code>install()</code></dfn> method</h3>
 
@@ -1258,6 +1183,17 @@ dictionary WebInstallResult {};
             Let <var>document</var> be [=this=]'s [=relevant global object=]'s
             <a data-cite="html/window-object.html#concept-document-window">
             associated Document</a>.
+          </li>
+          <li>
+            If the <code>web-app-installation</code>
+            [=policy-controlled feature=] is disabled in <var>document</var>,
+            throw a "{{SecurityError}}" {{DOMException}}.
+          </li>
+          <li>
+            If <var>document</var>'s
+            <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+            active sandboxing flag set</a> is not empty, throw a
+            "{{SecurityError}}" {{DOMException}}.
           </li>
           <li>
             If <var>document</var> is not an [=eligible initiating document=],
@@ -1293,6 +1229,17 @@ dictionary WebInstallResult {};
             Let <var>document</var> be [=this=]'s [=relevant global object=]'s
             <a data-cite="html/window-object.html#concept-document-window">
             associated Document</a>.
+          </li>
+          <li>
+            If the <code>web-app-installation</code>
+            [=policy-controlled feature=] is disabled in <var>document</var>,
+            throw a "{{SecurityError}}" {{DOMException}}.
+          </li>
+          <li>
+            If <var>document</var>'s
+            <a data-cite="html/browsers.html#active-sandboxing-flag-set">
+            active sandboxing flag set</a> is not empty, throw a
+            "{{SecurityError}}" {{DOMException}}.
           </li>
           <li>
             If <var>document</var> is not an [=eligible initiating document=],
@@ -1364,13 +1311,6 @@ dictionary WebInstallResult {};
           </li>
         </ol>
 
-        <p class="issue">
-          <strong>Activation is consumed before argument validation.</strong>
-          The ordering above matches Chromium. An invalid manifest URL therefore
-          consumes activation even though no request starts. Moving URL parsing
-          before consumption would be friendlier to authors but would differ
-          from current implementation.
-        </p>
       </section>
 
       <section data-dfn-for="InstallParams">
@@ -1440,13 +1380,6 @@ dictionary WebInstallResult {};
           <li>Return <var>promise</var>.</li>
         </ol>
 
-        <p class="issue">
-          <strong>The aborted result remains intentionally coarse.</strong>
-          Permission denial, unsupported profiles, navigation, concurrency, user
-          dismissal, and internal failure all map to <code>AbortError</code>.
-          Resolve this together with the public outcome taxonomy issue; until
-          then, implementations should not assume this result is stable.
-        </p>
       </section>
     </section>
 
@@ -1530,14 +1463,6 @@ dictionary InstallResultEventInit : EventInit {
   InstallResult result = "aborted";
 };
       </pre>
-
-      <p class="issue">
-        <strong>The event initializer default differs from Chromium.</strong>
-        Chromium's dictionary has no default and a script-constructed event can
-        have an empty internal result. This draft defaults to
-        <code>aborted</code> so every conforming event has a valid enum value.
-        Alternatively, the member could be required.
-      </p>
 
       <p class="issue">
         <strong>The content model is provisional.</strong>
