@@ -1535,6 +1535,18 @@ dictionary InstallResultEventInit : EventInit {
           {{HTMLInstallElement/invalidReason}} is that reason.
         </p>
 
+        <p class="note">
+          <strong>The shared blocker reason set does not yet include
+          <code>illegal_sandbox</code>.</strong>
+          [[CAPABILITY-ELEMENTS]] defines <code>illegal_subframe</code>, but
+          does not include <code>illegal_sandbox</code> in
+          <code>ActivationBlockersMixinBlockerReason</code> or its blocker
+          reason table. This specification provisionally defines
+          <code>illegal_sandbox</code> and the context ordering above for
+          <code>&lt;<a data-link-type="element">install</a>&gt;</code>. This
+          does not otherwise redefine the mixin's blocker processing or the
+          ordering among blocker reasons defined by [[CAPABILITY-ELEMENTS]].
+        </p>
       </section>
 
       <section>
@@ -1647,18 +1659,10 @@ dictionary InstallResultEventInit : EventInit {
         </p>
 
         <p>
-          The native control's rendering, intrinsic dimensions, accessible
-          properties, DOM-observable state, and supported pseudo-classes MUST
-          NOT vary based on whether the target application is installed.
-        </p>
-
-        <p class="note">
-          <strong>Installed-state rendering is deferred.</strong>
-          This specification does not define a distinct appearance for an
-          installed application. Such an appearance is a desired future
-          enhancement, outside the initial shipping scope. Its design needs to
-          prevent installed-state disclosure through layout, CSS, canvas,
-          timing, accessibility APIs, or other observable behavior.
+          The user agent controls the native control's appearance, subject to
+          the requirements in <a href="#privacy">Privacy considerations</a>
+          that prevent the initiating document from detecting the target
+          application's installed state.
         </p>
 
         <p>
@@ -2089,12 +2093,12 @@ dictionary InstallResultEventInit : EventInit {
       </p>
 
       <p>
-        For an [=explicit manifest=] request, requiring the processed start URL
-        and manifest URL to be [=same origin=] deliberately excludes manifests
-        hosted on a different CDN origin. A manifest origin cannot establish
-        authority to install an application at an unrelated origin. Future
-        support for such deployments would require proof controlled by the
-        application origin.
+        For an [=explicit manifest=] request, the same-origin requirement
+        between the candidate's [=web install candidate/manifest URL=] and
+        [=web install candidate/start URL=] prevents a manifest hosted on one
+        origin from claiming authority over an application on another origin.
+        Supporting cross-origin manifest hosting would require a mechanism
+        through which the application origin authorizes that association.
       </p>
     </section>
 
@@ -2114,6 +2118,15 @@ dictionary InstallResultEventInit : EventInit {
         keyboard activation, and platform accessibility input. Visual
         validation and anti-clickjacking checks MUST work with forced colors,
         high contrast, zoom, text scaling, and other user preferences.
+      </p>
+
+      <p class="note">
+        How shared activation-blocker states map to platform accessibility
+        states remains unspecified in the HTML Permission Element
+        specification; see its
+        <a href=
+          "https://wicg.github.io/PEPC/permission-elements.html#issue-730fe291">
+        accessibility considerations issue</a>.
       </p>
 
       <p>
