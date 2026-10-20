@@ -1464,13 +1464,14 @@ dictionary InstallResultEventInit : EventInit {
 };
       </pre>
 
-      <p class="issue">
-        <strong>The content model is provisional.</strong>
-        Capability-element drafts vary between flow and phrasing fallback
-        content. A fallback link is a key use case, but nesting interactive
-        content inside a supported interactive element can create activation
-        and accessibility ambiguity. This draft provisionally allows phrasing
-        content and suppresses author children when the native control renders.
+      <p>
+        The child nodes of an
+        <code>&lt;<a data-link-type="element">install</a>&gt;</code> element are
+        <a data-cite="html/dom.html#fallback-content">fallback content</a>.
+        While the native control is rendered, those nodes are not rendered,
+        focusable, or exposed in the accessibility tree. A user agent that does
+        not support the element renders the children according to ordinary HTML
+        rules.
       </p>
 
       <p>
@@ -1478,14 +1479,6 @@ dictionary InstallResultEventInit : EventInit {
         element is not form-associated. It does not define a
         <code>disabled</code> content attribute; activation blockers represent
         whether the native control can currently be activated.
-      </p>
-
-      <p class="issue">
-        <strong>An author-controlled disabled state may be useful.</strong>
-        A standard <code>disabled</code> attribute could let authors remove the
-        control from interaction and accessibility navigation while application
-        state changes. The current proposal and Chromium implementation do not
-        expose one.
       </p>
 
       <p>
@@ -1542,7 +1535,7 @@ dictionary InstallResultEventInit : EventInit {
           {{HTMLInstallElement/invalidReason}} is that reason.
         </p>
 
-        <p class="issue">
+        <p class="note">
           <strong>The shared blocker reason set does not yet include
           <code>illegal_sandbox</code>.</strong>
           [[CAPABILITY-ELEMENTS]] defines <code>illegal_subframe</code>, but
@@ -1666,29 +1659,10 @@ dictionary InstallResultEventInit : EventInit {
         </p>
 
         <p>
-          While the native control is rendered, author children are
-          <a data-cite="html/dom.html#fallback-content">fallback content</a>
-          and are not rendered. A user agent that does not
-          support
-          <code>&lt;<a data-link-type="element">install</a>&gt;</code> treats
-          it as an {{HTMLUnknownElement}}, allowing its children to provide
-          ordinary HTML fallback.
-        </p>
-
-        <p>
-          The native control's rendering, intrinsic dimensions, accessible
-          properties, DOM-observable state, and supported pseudo-classes MUST
-          NOT vary based on whether the target application is installed.
-        </p>
-
-        <p class="issue">
-          <strong>Installed-state rendering conflicts across evidence.</strong>
-          The explainer permits an optional "Launch" appearance. Chromium
-          contains that appearance but disables it because width differences
-          reveal installed state. This draft provisionally requires
-          installed-state-independent rendering. Any future launch appearance
-          needs a complete side-channel design covering layout, CSS, canvas,
-          timing, and accessibility APIs.
+          The user agent controls the native control's appearance, subject to
+          the requirements in <a href="#privacy">Privacy considerations</a>
+          that prevent the initiating document from detecting the target
+          application's installed state.
         </p>
 
         <p>
@@ -1832,13 +1806,14 @@ dictionary InstallResultEventInit : EventInit {
           </li>
         </ol>
 
-        <p class="issue">
-          <strong>Blocked activation currently has no result event.</strong>
-          Chromium silently ignores untrusted, visually invalid, or
-          unregistered activation. That is consistent with capability-element
-          validation, but authors may expect every user activation to produce
-          <code>installresult</code>. The final text should preserve silence or
-          define a separate pre-activation signal deliberately.
+        <p>
+          Returning before a [=web install request=] is created because the
+          activation is untrusted, the element is blocked, or the document is
+          ineligible does not queue an <code>installresult</code> event.
+          Blocker state is exposed through
+          {{HTMLInstallElement/isValid}},
+          {{HTMLInstallElement/invalidReason}}, and
+          {{HTMLInstallElement/onvalidationstatuschange}}.
         </p>
 
         <p>
@@ -1851,12 +1826,6 @@ dictionary InstallResultEventInit : EventInit {
           activations.
         </p>
 
-        <p class="issue">
-          <strong>Detached-element result delivery is unresolved.</strong>
-          The implementation snapshots options, but focused tests do not define
-          whether removing or reinserting the element cancels an in-flight
-          installation or whether a queued result fires on a detached element.
-        </p>
       </section>
 
       <section id="install-result-event">
@@ -1942,13 +1911,6 @@ dictionary InstallResultEventInit : EventInit {
           </tbody>
         </table>
 
-        <p class="issue">
-          <strong>Event ordering and flags need WPT coverage.</strong>
-          Chromium queues the event on the user interaction task source,
-          bubbles it, and leaves it non-cancelable and non-composed. Tests do
-          not yet pin ordering relative to dialog closure, application launch,
-          navigation, or promise microtasks, nor the composed/cancelable flags.
-        </p>
       </section>
 
       <section data-dfn-for="InstallResultEvent">
@@ -2130,12 +2092,13 @@ dictionary InstallResultEventInit : EventInit {
         bounded and MUST treat every URL and metadata field as untrusted.
       </p>
 
-      <p class="issue">
-        <strong>Target authority for CDN-hosted manifests remains open.</strong>
-        This draft requires the processed start URL to be same-origin with the
-        manifest URL. That excludes common CDN deployment patterns but avoids a
-        manifest on one origin claiming an unrelated application on another.
-        Supporting CDN manifests requires a non-gatekeeping proof of authority.
+      <p>
+        For an [=explicit manifest=] request, the same-origin requirement
+        between the candidate's [=web install candidate/manifest URL=] and
+        [=web install candidate/start URL=] prevents a manifest hosted on one
+        origin from claiming authority over an application on another origin.
+        Supporting cross-origin manifest hosting would require a mechanism
+        through which the application origin authorizes that association.
       </p>
     </section>
 
@@ -2157,13 +2120,13 @@ dictionary InstallResultEventInit : EventInit {
         high contrast, zoom, text scaling, and other user preferences.
       </p>
 
-      <p class="issue">
-        <strong>Blocked-state accessibility is underspecified.</strong>
-        Chromium exposes a button role and default focusability, but focused
-        tests do not define how temporary visual blockers or policy failure map
-        to disabled state in the accessibility tree. The native control must
-        not appear actionable to assistive technology when activation is
-        impossible.
+      <p class="note">
+        How shared activation-blocker states map to platform accessibility
+        states remains unspecified in the HTML Permission Element
+        specification; see its
+        <a href=
+          "https://wicg.github.io/PEPC/permission-elements.html#issue-730fe291">
+        accessibility considerations issue</a>.
       </p>
 
       <p>
@@ -2193,12 +2156,12 @@ dictionary InstallResultEventInit : EventInit {
         without hiding security-relevant origin information.
       </p>
 
-      <p class="issue">
-        <strong>Control and manifest locale selection can diverge.</strong>
-        Chromium localizes the control from the inherited document language,
-        while target metadata selection can follow user-agent locale
-        preferences. The final specification should define this as intentional
-        or choose one locale negotiation model.
+      <p>
+        These mechanisms intentionally can select different languages. The
+        native control follows the language inherited by the element, while
+        target metadata can follow user-agent language preferences through Web
+        App Manifest localization processing. A mixed-language interface is
+        therefore conforming.
       </p>
     </section>
 
